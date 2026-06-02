@@ -8,7 +8,7 @@ class Powitania(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member):
         # Twoje ID kanału powitań
-        channel_id = 1280550904839540842
+        channel_id = 1280541432259678352
         channel = self.bot.get_channel(channel_id)
 
         if channel:
