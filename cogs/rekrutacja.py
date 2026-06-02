@@ -1,4 +1,4 @@
-import discord
+  import discord
 from discord.ext import commands
 from discord import ui
 import json
@@ -6,55 +6,96 @@ import os
 import asyncio
 
 # --- KONFIGURACJA ---
+ADMIN_ROLE_ID = 1511396320173359144
 CATEGORY_ID = 1511466087278051410
 CONFIG_FILE = "config_rekrutacja.json"
 DATA_FILE = "podania.json"
 
+# --- FUNKCJE ---
 def load_config():
-    if not os.path.exists(CONFIG_FILE): return {"event_name": "Rekrutacja"}
+    if not os.path.exists(CONFIG_FILE): return {"event_name": "Rekrutacja", "role_id": None}
     with open(CONFIG_FILE, "r", encoding="utf-8") as f: return json.load(f)
 
-# --- FORMULARZ (Naprawione wcięcia i etykiety < 45 znaków) ---
-class RecruitmentModal(ui.Modal, title='Formularz Rekrutacji'):
-    q1 = ui.TextInput(label='1. Cały event? | Wiek? | Premium?', placeholder='Tak, 16, Tak', style=discord.TextStyle.short)
-    q2 = ui.TextInput(label='2. Twój nick MC? | Zakaz cheatów?', placeholder='Np. jasiu_shey, rozumiem', style=discord.TextStyle.short)
-    q3 = ui.TextInput(label='3. Czym jest RP? | Scenka z Wilem?', placeholder='RP to..., Gdy spotkam Wila...', style=discord.TextStyle.paragraph)
-    q4 = ui.TextInput(label='4. Grałeś już na takich eventach?', placeholder='Np. Tak, u Ciebie / Nie', style=discord.TextStyle.short)
-    q5 = ui.TextInput(label='5. Link do filmu (Mikrofon + POV)', placeholder='Wklej link (YT/Medal/Dysk)', style=discord.TextStyle.paragraph)
+def load_applicants():
+    if not os.path.exists(DATA_FILE): return []
+    with open(DATA_FILE, "r") as f: return json.load(f)
+
+def save_applicant(user_id):
+    applicants = load_applicants()
+    if user_id not in applicants:
+        applicants.append(user_id)
+        with open(DATA_FILE, "w") as f: json.dump(applicants, f)
+
+# --- PANEL DECYZJI W TICKETACH ---
+class AdminDecisionView(ui.View):
+    def __init__(self, applicant):
+        super().__init__(timeout=None)
+        self.applicant = applicant
+
+    @ui.button(label="Zaakceptuj", style=discord.ButtonStyle.success, emoji="✅")
+    async def accept(self, interaction: discord.Interaction, button: ui.Button):
+        config = load_config()
+        if config["role_id"]:
+            role = interaction.guild.get_role(int(config["role_id"]))
+            if role: await self.applicant.add_roles(role)
+        try: await self.applicant.send(f"✅ Gratulacje! Twoje podanie na **{config['event_name']}** zaakceptowane!")
+        except: pass
+        await interaction.response.send_message("🟢 Zaakceptowano. Usuwam kanał...")
+        await asyncio.sleep(3)
+        await interaction.channel.delete()
+
+    @ui.button(label="Odrzuć", style=discord.ButtonStyle.danger, emoji="❌")
+    async def deny(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.send_message("🔴 Odrzucono. Usuwam kanał...")
+        await asyncio.sleep(3)
+        await interaction.channel.delete()
+
+# --- FORMULARZ ---
+class RecruitmentModal(ui.Modal):
+    def __init__(self, title_name):
+        super().__init__(title=f"Rekrutacja: {title_name}"[:45])
+
+    q1 = ui.TextInput(label='1. Czy możesz zagrać cały event? Ile masz lat? Masz mc premium?', placeholder='Tak / Tak / Tak', style=discord.TextStyle.short)
+    q2 = ui.TextInput(label='2. Jaki masz nick w mc? Rozumiesz że na nagrywce nie można używać cheatów?', placeholder='Np. jasiu_shey , rozumiem', style=discord.TextStyle.short)
+    q3 = ui.TextInput(label='3. Wyjaśnij czym jest rp/kontent Co byś zrobił jakbyś spotkał Wila na mapie?', placeholder='RP to... Gdy spotkam Wila...', style=discord.TextStyle.paragraph)
+    q4 = ui.TextInput(label='4. Czy grałeś już u kogoś na podobnych eventach, jak tak to u kogo?', placeholder='Np. Tak, u Ciebie / Nie brałem udziału', style=discord.TextStyle.short)
+    q5 = ui.TextInput(label='5. Wyślij tutaj link do filmu w którym słychać twój mikrofon oraz widać fov z gry', placeholder='Wklej linki do filmu i screena suba', style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.send_message("✅ Wysłano! Sprawdź listę kanałów.", ephemeral=True)
+        await interaction.response.send_message("✅ Wysłano! Tworzę Twój ticket...", ephemeral=True)
+        save_applicant(interaction.user.id)
         
         category = interaction.guild.get_channel(CATEGORY_ID)
         channel = await interaction.guild.create_text_channel(
-            name=f"podanie-{interaction.user.name}",
-            category=category,
-            overwrites={
-                interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-                interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-            }
+            f"podanie-{interaction.user.name}", category=category,
+            overwrites={interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                        interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                        interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
         )
         
-        embed = discord.Embed(title=f"📝 Podanie - {interaction.user.name}", color=discord.Color.gold())
-        embed.add_field(name="1. Info", value=self.q1.value, inline=False)
-        embed.add_field(name="2. Nick/Zasady", value=self.q2.value, inline=False)
-        embed.add_field(name="3. RP/Scenka", value=self.q3.value, inline=False)
-        embed.add_field(name="4. Historia", value=self.q4.value, inline=False)
-        embed.add_field(name="5. Linki", value=self.q5.value, inline=False)
+        ans = discord.Embed(title=f"📝 TREŚĆ PODANIA - {interaction.user.name}", color=discord.Color.gold())
+        ans.add_field(name="1. Info", value=self.q1.value, inline=False)
+        ans.add_field(name="2. Dane", value=self.q2.value, inline=False)
+        ans.add_field(name="3. RP/Scenka", value=self.q3.value, inline=False)
+        ans.add_field(name="4. Historia", value=self.q4.value, inline=False)
+        ans.add_field(name="5. Dowody", value=self.q5.value, inline=False)
         
-        await channel.send(f"🛡️ **Panel Decyzji:** {interaction.user.mention}")
-        await channel.send(embed=embed)
+        await channel.send(f"🛡️ **Panel Decyzji:** {interaction.user.mention}", view=AdminDecisionView(interaction.user))
+        await channel.send(embed=ans)
 
-# --- RESZTA KODU (StartView itp.) ---
+# --- GŁÓWNY WIDOK PRZYCISKU ---
 class StartView(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @ui.button(label="Złóż podanie", style=discord.ButtonStyle.primary, custom_id="persistent_view:start_rec")
-    async def button_click(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_modal(RecruitmentModal())
+    @ui.button(label="Złóż podanie na event", style=discord.ButtonStyle.primary, custom_id="start_rec")
+    async def button_callback(self, interaction: discord.Interaction, button: ui.Button):
+        cfg = load_config()
+        if interaction.user.id in load_applicants():
+            return await interaction.response.send_message("❌ Już wysłałeś podanie!", ephemeral=True)
+        await interaction.response.send_modal(RecruitmentModal(cfg["event_name"]))
 
+# --- KOG ---
 class Rekrutacja(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -65,7 +106,11 @@ class Rekrutacja(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def nowy_event(self, ctx, *, nazwa: str):
+    async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump({"event_name": nazwa, "role_id": ranga_id}, f)
+        if os.path.exists(DATA_FILE): os.remove(DATA_FILE)
+            
         embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
         await ctx.send(embed=embed, view=StartView())
         await ctx.message.delete()
