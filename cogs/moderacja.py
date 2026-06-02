@@ -59,7 +59,7 @@ class Moderacja(commands.Cog):
     async def tiktok(self, ctx):
         await ctx.send(f"🎵 Zobacz TikToka Wila: https://www.tiktok.com/@hejkatuwilo")
 
-    # Obsługa błędów uprawnień (dla clear)
+    # Obsługa błędów uprawnień
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
