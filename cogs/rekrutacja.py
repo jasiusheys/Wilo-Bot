@@ -56,15 +56,11 @@ class RecruitmentModal(ui.Modal):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
   q1 = ui.TextInput(label='1. Cały event? | Wiek? | MC Premium?', placeholder='Tak / 16 / Tak', style=discord.TextStyle.short)
-    
     # Naprawiony cudzysłów i skrócony tekst
     q2 = ui.TextInput(label='2. Twój nick MC? | Zakaz cheatów?', placeholder='Np. jasiu_shey , rozumiem', style=discord.TextStyle.short)
-    
     # Skrócony tekst (był za długi)
     q3 = ui.TextInput(label='3. Co to RP? | Scenka: spotkanie Wila', placeholder='RP to... Gdy spotkam Wila...', style=discord.TextStyle.paragraph)
-    
     q4 = ui.TextInput(label='4. Grałeś już na takich eventach?', placeholder='Np. Tak, u Ciebie / Nie brałem udziału', style=discord.TextStyle.short)
-    
     # Skrócony tekst
     q5 = ui.TextInput(label='5. Link do filmu (Mikrofon + POV)', placeholder='Wklej linki do filmu i screena suba', style=discord.TextStyle.paragraph)
 
