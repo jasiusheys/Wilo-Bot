@@ -80,15 +80,11 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-    q1 = ui.TextInput(label='1. Czy możesz zagrać cały event? | czy masz minecrafta premium? | Zakaz cheatów?', placeholder='Tak / Tak / Tak, rozumiem', style=discord.TextStyle.short)
-    q2 = ui.TextInput(label='2. Ile masz lat oraz podaj swój nick w Minecraft', placeholder='Np. 16 lat, Nick_Z_Gry', style=discord.TextStyle.short)
-    q3 = ui.TextInput(label='3. Czy ogarniesz granie pod roleplay/kontent oraz wyjaśnij czym jest ', placeholder='RP to... Gdy spotkam Wila to...', style=discord.TextStyle.paragraph)
-    q4 = ui.TextInput(label='4. Czy byłeś już na takich eventach? (U kogo)', placeholder='Np. Tak, u Ciebie / Nie brałem udziału', style=discord.TextStyle.short)
-    q5 = ui.TextInput(label='5. Ostatnim zadaniem jest nagranie filmu, takiego jak ten: https://www.youtube.com/watch?v=MOoh2R_dbFM i przesłanie do niego linku poniżej (całe nagranie możesz przesłać na dysk google lub youtube,medal i dać na niepubliczny w przypadku youtuba, lub daj dostęp każdemu kto posiada link w przypadku google dysku.)
-
-całe zadanie polega na weryfikacji mikrofonu i pova z gry, bez tego nie przejdziesz rekrutacji!!! 
-
-', placeholder='Wklej linki do filmu', style=discord.TextStyle.paragraph)
+ q1 = ui.TextInput(label='1. Czy zagrasz cały event, ile masz lat i premium?', placeholder='Tak, 16 lat, Tak', style=discord.TextStyle.short)
+    q2 = ui.TextInput(label='2. Twój nick MC oraz zgoda na zakaz cheatów', placeholder='Nick: ..., Zgadzam się na zakaz cheatów', style=discord.TextStyle.short)
+    q3 = ui.TextInput(label='3. Co to RP? + Co zrobisz jak spotkasz Wila?', placeholder='RP to..., Gdy spotkam Wila na mapie to...', style=discord.TextStyle.paragraph)
+    q4 = ui.TextInput(label='4. Grałeś już na takich eventach? U kogo?', placeholder='Np. Tak, grałem u X, albo Nie grałem', style=discord.TextStyle.short)
+    q5 = ui.TextInput(label='5. Link do filmu (Mikrofon + POV z gry)', placeholder='Wstaw link do YT/Medal/Dysk Google', style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
         if interaction.user.id in load_applicants():
