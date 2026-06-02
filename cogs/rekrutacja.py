@@ -11,6 +11,7 @@ CATEGORY_ID = 1511466087278051410
 CONFIG_FILE = "config_rekrutacja.json"
 DATA_FILE = "podania.json"
 
+# --- FUNKCJE POMOCNICZE ---
 def load_config():
     if not os.path.exists(CONFIG_FILE): return {"event_name": "Rekrutacja", "role_id": None}
     with open(CONFIG_FILE, "r", encoding="utf-8") as f: return json.load(f)
@@ -37,7 +38,7 @@ class AdminDecisionView(ui.View):
         if config["role_id"]:
             role = interaction.guild.get_role(int(config["role_id"]))
             if role: await self.applicant.add_roles(role)
-        try: await self.applicant.send(f"✅ Gratulacje! Twoje podanie na **{config['event_name']}** zaakceptowane!")
+        try: await self.applicant.send(f"✅ Gratulacje! Twoje podanie na event **{config['event_name']}** zaakceptowane!")
         except: pass
         await interaction.response.send_message("🟢 Zaakceptowano.", ephemeral=True)
         await asyncio.sleep(2)
@@ -49,7 +50,7 @@ class AdminDecisionView(ui.View):
         await asyncio.sleep(2)
         await interaction.channel.delete()
 
-# --- MODAL ---
+# --- FORMULARZ ---
 class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
@@ -61,7 +62,9 @@ class RecruitmentModal(ui.Modal):
     q5 = ui.TextInput(label='Pytanie 5', placeholder='Link do filmu (mikrofon + fov gry)', style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message("✅ Wysłano! Ticket tworzy się w tle.", ephemeral=True)
         save_applicant(interaction.user.id)
+        
         category = interaction.guild.get_channel(CATEGORY_ID)
         channel = await interaction.guild.create_text_channel(
             f"podanie-{interaction.user.name}", category=category,
@@ -79,7 +82,6 @@ class RecruitmentModal(ui.Modal):
         
         await channel.send(f"🛡️ **Panel Decyzji:** {interaction.user.mention}", view=AdminDecisionView(interaction.user))
         await channel.send(embed=ans)
-        await interaction.response.send_message("✅ Wysłano! Ticket utworzony.", ephemeral=True)
 
 # --- START VIEW ---
 class StartView(ui.View):
@@ -101,7 +103,7 @@ class Rekrutacja(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         self.bot.add_view(StartView())
-        self.bot.add_view(AdminDecisionView(None)) # Rejestracja widoku decyzji
+        self.bot.add_view(AdminDecisionView(None))
 
     @commands.command()
     @commands.has_permissions(administrator=True)
