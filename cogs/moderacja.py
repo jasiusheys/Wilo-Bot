@@ -32,3 +32,26 @@ class Moderacja(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Moderacja(bot))
+import discord
+from discord.ext import commands
+
+class Moderacja(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    # Komenda !clear do usuwania wiadomości
+    @commands.command()
+    @commands.has_permissions(manage_messages=True)
+    async def clear(self, ctx, amount: int):
+        # Usuwa podaną liczbę wiadomości + 1 (wiadomość z komendą)
+        await ctx.channel.purge(limit=amount + 1)
+        await ctx.send(f"✅ Usunięto {amount} wiadomości!", delete_after=3)
+
+    # Komenda !yt / !youtube
+    @commands.command(aliases=['youtube'])
+    async def yt(self, ctx):
+        link = "TUTAJ_WKLEJ_LINK_DO_KANAŁU_WILA"
+        await ctx.send(f"🎥 Sprawdź kanał Wila tutaj: {link}")
+
+async def setup(bot):
+    await bot.add_cog(Moderacja(bot))
