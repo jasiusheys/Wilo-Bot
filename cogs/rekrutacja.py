@@ -55,14 +55,11 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-  q1 = ui.TextInput(label='1. Cały event? | Wiek? | MC Premium?', placeholder='Tak / 16 / Tak', style=discord.TextStyle.short)
-    # Naprawiony cudzysłów i skrócony tekst
-    q2 = ui.TextInput(label='2. Twój nick MC? | Zakaz cheatów?', placeholder='Np. jasiu_shey , rozumiem', style=discord.TextStyle.short)
-    # Skrócony tekst (był za długi)
-    q3 = ui.TextInput(label='3. Co to RP? | Scenka: spotkanie Wila', placeholder='RP to... Gdy spotkam Wila...', style=discord.TextStyle.paragraph)
-    q4 = ui.TextInput(label='4. Grałeś już na takich eventach?', placeholder='Np. Tak, u Ciebie / Nie brałem udziału', style=discord.TextStyle.short)
-    # Skrócony tekst
-    q5 = ui.TextInput(label='5. Link do filmu (Mikrofon + POV)', placeholder='Wklej linki do filmu i screena suba', style=discord.TextStyle.paragraph)
+    q1 = ui.TextInput(label='1. Czy możesz zagrać cały event? Ile masz lat? Masz mc premium?', placeholder='Tak / Tak / Tak', style=discord.TextStyle.short)
+    q2 = ui.TextInput(label='2. Jaki masz nick w mc? Rozumiesz że na nagrywce nie można używać cheatów?', placeholder='Np. jasiu_shey , rozumiem', style=discord.TextStyle.short)
+    q3 = ui.TextInput(label='3. Wyjaśnij czym jest rp/kontent Co byś zrobił jakbyś spotkał Wila na mapie?', placeholder='RP to... Gdy spotkam Wila...', style=discord.TextStyle.paragraph)
+    q4 = ui.TextInput(label='4. Czy grałeś już u kogoś na podobnych eventach, jak tak to u kogo?', placeholder='Np. Tak, u Ciebie / Nie brałem udziału', style=discord.TextStyle.short)
+    q5 = ui.TextInput(label='5. Wyślij tutaj link do filmu w którym słychać twój mikrofon oraz widać fov z gry', placeholder='Wklej linki do filmu i screena suba', style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.send_message("✅ Wysłano! Tworzę Twój ticket...", ephemeral=True)
@@ -105,4 +102,18 @@ class Rekrutacja(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self
+        self.bot.add_view(StartView())
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump({"event_name": nazwa, "role_id": ranga_id}, f)
+        if os.path.exists(DATA_FILE): os.remove(DATA_FILE)
+            
+        embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
+        await ctx.send(embed=embed, view=StartView())
+        await ctx.message.delete()
+
+async def setup(bot):
+    await bot.add_cog(Rekrutacja(bot))
