@@ -55,11 +55,11 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-    q1 = ui.TextInput(label='1. Cały event? | Premium? | Zakaz cheatów?', placeholder='Tak / Tak / Tak, rozumiem', style=discord.TextStyle.short)
-    q2 = ui.TextInput(label='2. Twój wiek oraz Nick w Minecraft', placeholder='Np. 16 lat, Nick_Z_Gry', style=discord.TextStyle.short)
-    q3 = ui.TextInput(label='3. Co to RP? + Scenka spotkania Wila', placeholder='RP to... Gdy spotkam Wila...', style=discord.TextStyle.paragraph)
-    q4 = ui.TextInput(label='4. Grałeś już na takich eventach?', placeholder='Np. Tak, u Ciebie / Nie brałem udziału', style=discord.TextStyle.short)
-    q5 = ui.TextInput(label='5. Link do filmu (Mikrofon + POV)', placeholder='Wklej linki do filmu i screena suba', style=discord.TextStyle.paragraph)
+    q1 = ui.TextInput(label='1. Czy możesz zagrać cały event? Ile masz lat? Masz mc premium?', placeholder='Tak / Tak / Tak', style=discord.TextStyle.short)
+    q2 = ui.TextInput(label='2. Jaki masz nick w mc? Rozumiesz żę na nagrywce nie można używać cheatów oraz zakazanych modów/txt, placeholder='Np. jasiu_shey , rozumiem', style=discord.TextStyle.short)
+    q3 = ui.TextInput(label='3. Wyjaśnij czym jest rp/kontent Co byś zrobił jakbyś spotkał Wila na mapie?', placeholder='RP to... Gdy spotkam Wila...', style=discord.TextStyle.paragraph)
+    q4 = ui.TextInput(label='4. Czy grałeś już u kogoś na podobnych eventach, jak tak to u kogo?', placeholder='Np. Tak, u Ciebie / Nie brałem udziału', style=discord.TextStyle.short)
+    q5 = ui.TextInput(label='5. Wyślij tutaj link do filmu w którym słychać twój mikrofon oraz widać fov z gry wstaw na (youtube/medal/dysk)', placeholder='Wklej linki do filmu i screena suba', style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.send_message("✅ Wysłano! Tworzę Twój ticket...", ephemeral=True)
