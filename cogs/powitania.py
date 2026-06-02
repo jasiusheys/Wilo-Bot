@@ -19,7 +19,7 @@ class Powitania(commands.Cog):
             tresc = f"Siema {member.mention}!\nDobrze Cię widzieć u nas.\nRozgość się i baw się dobrze!"
 
             embed = discord.Embed(
-                title="✨ Witaj na serwerze Wilo - Eventy ✨",
+                title="💎 Witaj na serwerze Wilo - Eventy 💎",
                 description=f"{ramka_gora}\n\n{tresc}\n\n{ramka_dol}",
                 color=discord.Color.blue()
             )
