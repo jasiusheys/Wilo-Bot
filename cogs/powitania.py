@@ -30,8 +30,5 @@ class Powitania(commands.Cog):
             # Stopka z licznikiem osób
             embed.set_footer(text=f"Jesteś naszym {len(member.guild.members)} członkiem!")
 
-            # Wysyła wzmiankę nad ramką i samą ramkę
-            await channel.send(content=f"Hej {member.mention}! Witamy na pokładzie!", embed=embed)
-
 async def setup(bot):
     await bot.add_cog(Powitania(bot))
