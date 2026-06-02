@@ -13,13 +13,13 @@ class Moderacja(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def kick(self, ctx, member: discord.Member, *, reason=None):
         await member.kick(reason=reason)
-        await ctx.send(f'✅ Gracz {member.mention} został wyrzucony. Powód: {reason}')
+        await ctx.send(f'✅ Gracz {member.mention} został wyrzucony.')
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
     async def ban(self, ctx, member: discord.Member, *, reason=None):
         await member.ban(reason=reason)
-        await ctx.send(f'✅ Gracz {member.mention} został zbanowany. Powód: {reason}')
+        await ctx.send(f'✅ Gracz {member.mention} został zbanowany.')
 
     @commands.command()
     @commands.has_permissions(manage_messages=True)
@@ -42,8 +42,7 @@ class Moderacja(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.send("❌ Nie masz uprawnień do używania tej komendy!")
+            await ctx.send("❌ Nie masz uprawnień!")
 
 async def setup(bot):
     await bot.add_cog(Moderacja(bot))
-    print("Moduł moderacji został załadowany!")
