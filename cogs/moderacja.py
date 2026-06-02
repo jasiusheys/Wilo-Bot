@@ -50,7 +50,7 @@ class Moderacja(commands.Cog):
     # Komenda !yt / !youtube
     @commands.command(aliases=['youtube'])
     async def yt(self, ctx):
-        link = "TUTAJ_WKLEJ_LINK_DO_KANAŁU_WILA"
+        link = "https://youtube.com/@wilo93?si=W0tJHwr79kyUQjNC"
         await ctx.send(f"🎥 Sprawdź kanał Wila tutaj: {link}")
 
 async def setup(bot):
