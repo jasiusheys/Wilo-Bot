@@ -11,7 +11,6 @@ CATEGORY_ID = 1511466087278051410
 CONFIG_FILE = "config_rekrutacja.json"
 DATA_FILE = "podania.json"
 
-# --- FUNKCJE ---
 def load_config():
     if not os.path.exists(CONFIG_FILE): return {"event_name": "Rekrutacja", "role_id": None}
     with open(CONFIG_FILE, "r", encoding="utf-8") as f: return json.load(f)
@@ -26,13 +25,13 @@ def save_applicant(user_id):
         applicants.append(user_id)
         with open(DATA_FILE, "w") as f: json.dump(applicants, f)
 
-# --- PANEL DECYZJI W TICKETACH ---
+# --- PANEL DECYZJI ---
 class AdminDecisionView(ui.View):
     def __init__(self, applicant):
         super().__init__(timeout=None)
         self.applicant = applicant
 
-    @ui.button(label="Zaakceptuj", style=discord.ButtonStyle.success, emoji="✅")
+    @ui.button(label="Zaakceptuj", style=discord.ButtonStyle.success, emoji="✅", custom_id="btn_accept")
     async def accept(self, interaction: discord.Interaction, button: ui.Button):
         config = load_config()
         if config["role_id"]:
@@ -40,31 +39,29 @@ class AdminDecisionView(ui.View):
             if role: await self.applicant.add_roles(role)
         try: await self.applicant.send(f"✅ Gratulacje! Twoje podanie na **{config['event_name']}** zaakceptowane!")
         except: pass
-        await interaction.response.send_message("🟢 Zaakceptowano. Usuwam kanał...")
-        await asyncio.sleep(3)
+        await interaction.response.send_message("🟢 Zaakceptowano.", ephemeral=True)
+        await asyncio.sleep(2)
         await interaction.channel.delete()
 
-    @ui.button(label="Odrzuć", style=discord.ButtonStyle.danger, emoji="❌")
+    @ui.button(label="Odrzuć", style=discord.ButtonStyle.danger, emoji="❌", custom_id="btn_deny")
     async def deny(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_message("🔴 Odrzucono. Usuwam kanał...")
-        await asyncio.sleep(3)
+        await interaction.response.send_message("🔴 Odrzucono.", ephemeral=True)
+        await asyncio.sleep(2)
         await interaction.channel.delete()
 
-# --- FORMULARZ ---
+# --- MODAL ---
 class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-    q1 = ui.TextInput(label='1. Czy możesz zagrać cały event? Ile masz lat? Masz mc premium?', placeholder='Tak / Tak / Tak', style=discord.TextStyle.short)
-    q2 = ui.TextInput(label='2. Jaki masz nick w mc? Rozumiesz że na nagrywce nie można używać cheatów?', placeholder='Np. jasiu_shey , rozumiem', style=discord.TextStyle.short)
-    q3 = ui.TextInput(label='3. Wyjaśnij czym jest rp/kontent Co byś zrobił jakbyś spotkał Wila na mapie?', placeholder='RP to... Gdy spotkam Wila...', style=discord.TextStyle.paragraph)
-    q4 = ui.TextInput(label='4. Czy grałeś już u kogoś na podobnych eventach, jak tak to u kogo?', placeholder='Np. Tak, u Ciebie / Nie brałem udziału', style=discord.TextStyle.short)
-    q5 = ui.TextInput(label='5. Wyślij tutaj link do filmu w którym słychać twój mikrofon oraz widać fov z gry', placeholder='Wklej linki do filmu i screena suba', style=discord.TextStyle.paragraph)
+    q1 = ui.TextInput(label='Pytanie 1', placeholder='Czy zagrasz cały event? Ile masz lat? MC Premium?', style=discord.TextStyle.short)
+    q2 = ui.TextInput(label='Pytanie 2', placeholder='Twój nick MC? Czy rozumiesz zakaz cheatów?', style=discord.TextStyle.short)
+    q3 = ui.TextInput(label='Pytanie 3', placeholder='Wyjaśnij RP i co zrobisz jak spotkasz Wila?', style=discord.TextStyle.paragraph)
+    q4 = ui.TextInput(label='Pytanie 4', placeholder='Czy grałeś już u kogoś na eventach?', style=discord.TextStyle.short)
+    q5 = ui.TextInput(label='Pytanie 5', placeholder='Link do filmu (mikrofon + fov gry)', style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.send_message("✅ Wysłano! Tworzę Twój ticket...", ephemeral=True)
         save_applicant(interaction.user.id)
-        
         category = interaction.guild.get_channel(CATEGORY_ID)
         channel = await interaction.guild.create_text_channel(
             f"podanie-{interaction.user.name}", category=category,
@@ -73,17 +70,18 @@ class RecruitmentModal(ui.Modal):
                         interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
         )
         
-        ans = discord.Embed(title=f"📝 TREŚĆ PODANIA - {interaction.user.name}", color=discord.Color.gold())
-        ans.add_field(name="1. Info", value=self.q1.value, inline=False)
-        ans.add_field(name="2. Dane", value=self.q2.value, inline=False)
-        ans.add_field(name="3. RP/Scenka", value=self.q3.value, inline=False)
-        ans.add_field(name="4. Historia", value=self.q4.value, inline=False)
-        ans.add_field(name="5. Dowody", value=self.q5.value, inline=False)
+        ans = discord.Embed(title=f"📝 PODANIE - {interaction.user.name}", color=discord.Color.gold())
+        ans.add_field(name="1", value=self.q1.value, inline=False)
+        ans.add_field(name="2", value=self.q2.value, inline=False)
+        ans.add_field(name="3", value=self.q3.value, inline=False)
+        ans.add_field(name="4", value=self.q4.value, inline=False)
+        ans.add_field(name="5", value=self.q5.value, inline=False)
         
         await channel.send(f"🛡️ **Panel Decyzji:** {interaction.user.mention}", view=AdminDecisionView(interaction.user))
         await channel.send(embed=ans)
+        await interaction.response.send_message("✅ Wysłano! Ticket utworzony.", ephemeral=True)
 
-# --- GŁÓWNY WIDOK PRZYCISKU ---
+# --- START VIEW ---
 class StartView(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -103,6 +101,7 @@ class Rekrutacja(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         self.bot.add_view(StartView())
+        self.bot.add_view(AdminDecisionView(None)) # Rejestracja widoku decyzji
 
     @commands.command()
     @commands.has_permissions(administrator=True)
