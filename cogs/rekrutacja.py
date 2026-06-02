@@ -110,13 +110,17 @@ class Rekrutacja(commands.Cog):
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
         save_config(nazwa, ranga_id)
         clear_applicants()
+        
+        class StartButton(ui.Button):
+            def __init__(self):
+                super().__init__(label="Złóż podanie", style=discord.ButtonStyle.primary, custom_id="start_rec")
+            async def callback(self, interaction: discord.Interaction):
+                cfg = load_config()
+                await interaction.response.send_modal(RecruitmentModal(cfg["event_name"]))
+        
         view = ui.View(timeout=None)
-        btn = ui.Button(label="Złóż podanie", style=discord.ButtonStyle.primary, custom_id="start_rec")
-        async def callback(interaction):
-            cfg = load_config()
-            await interaction.response.send_modal(RecruitmentModal(cfg["event_name"]))
-        btn.callback = callback
-        view.add_item(btn)
+        view.add_item(StartButton())
+        
         embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
         await ctx.send(embed=embed, view=view)
         await ctx.message.delete()
