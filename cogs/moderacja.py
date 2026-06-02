@@ -29,16 +29,17 @@ class Moderacja(commands.Cog):
         await ctx.channel.purge(limit=amount + 1)
         await ctx.send(f"✅ Usunięto {amount} wiadomości!", delete_after=3)
 
-    # Komendy społecznościowe z unikalnymi aliasami
-    @commands.command(aliases=['linkyt'])
+    # Komendy społecznościowe
+    # Używamy aliasów, aby bot reagował na krótkie komendy
+    @commands.command(aliases=['youtube'])
     async def yt(self, ctx):
         await ctx.send(f"🎥 Sprawdź kanał Wila tutaj: https://youtube.com/@wilo93")
 
-    @commands.command(aliases=['linkig'])
+    @commands.command(aliases=['ig'])
     async def instagram(self, ctx):
         await ctx.send(f"📸 Obserwuj Instagram Wila: https://www.instagram.com/hejkatuwilo")
 
-    @commands.command(aliases=['linktt'])
+    @commands.command(aliases=['tt'])
     async def tiktok(self, ctx):
         await ctx.send(f"🎵 Zobacz TikToka Wila: https://www.tiktok.com/@hejkatuwilo")
 
