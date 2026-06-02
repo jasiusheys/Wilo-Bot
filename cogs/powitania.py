@@ -13,7 +13,7 @@ class Powitania(commands.Cog):
 
         if channel:
             embed = discord.Embed(
-                title=f"Witaj na serwerze!",
+                title=f"Witaj na serwerze Wilo - Eventy!",
                 description=f"Cześć {member.mention}! Cieszymy się, że jesteś z nami. Przeczytaj regulamin i baw się dobrze!",
                 color=discord.Color.blue()
             )
