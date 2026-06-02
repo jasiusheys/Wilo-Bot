@@ -5,12 +5,10 @@ class Moderacja(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # Komendy podstawowe
     @commands.command()
     async def ping(self, ctx):
         await ctx.send(f'🏓 Pong! Opóźnienie: {round(self.bot.latency * 1000)}ms')
 
-    # Komendy moderacyjne
     @commands.command()
     @commands.has_permissions(kick_members=True)
     async def kick(self, ctx, member: discord.Member, *, reason=None):
@@ -29,7 +27,6 @@ class Moderacja(commands.Cog):
         await ctx.channel.purge(limit=amount + 1)
         await ctx.send(f"✅ Usunięto {amount} wiadomości!", delete_after=3)
 
-    # Komendy społecznościowe
     @commands.command(aliases=['youtube', 'yt'])
     async def yt(self, ctx):
         await ctx.send(f"🎥 Sprawdź kanał Wila tutaj: https://youtube.com/@wilo93")
@@ -42,7 +39,6 @@ class Moderacja(commands.Cog):
     async def tiktok(self, ctx):
         await ctx.send(f"🎵 Zobacz TikToka Wila: https://www.tiktok.com/@hejkatuwilo")
 
-    # Obsługa błędów
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
@@ -50,3 +46,4 @@ class Moderacja(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Moderacja(bot))
+    print("Moduł moderacji został załadowany!")
