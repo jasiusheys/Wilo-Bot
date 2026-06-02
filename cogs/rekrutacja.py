@@ -128,7 +128,7 @@ class RecruitmentModal(ui.Modal):
         )
         
         view = AdminDecisionView(applicant_id=interaction.user.id)
-        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}\n*Możesz kliknąć przycisk lub napisać na czacie **TAK** albo **NIE***", view=view)
+
         
         ans = discord.Embed(title=f"📝 Podanie - {interaction.user.name}", color=discord.Color.gold())
         ans.add_field(name="Pytanie 1", value=self.q1.value, inline=False)
