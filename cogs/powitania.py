@@ -30,5 +30,8 @@ class Powitania(commands.Cog):
             # Stopka z licznikiem osób
             embed.set_footer(text=f"Jesteś naszym {len(member.guild.members)} członkiem!")
 
+            # TO BYŁO BRAKUJĄCE OGNIWO:
+            await channel.send(embed=embed)
+
 async def setup(bot):
     await bot.add_cog(Powitania(bot))
