@@ -38,11 +38,10 @@ def clear_applicants():
     with open(DATA_FILE, "w") as f:
         json.dump([], f)
 
-# --- PANEL DECYZJI (Zoptymalizowany pod kątem stabilności) ---
+# --- PANEL DECYZJI ---
 class AdminDecisionView(ui.View):
     def __init__(self, applicant_id: int = None):
         super().__init__(timeout=None)
-        # Jeśli widok wstaje na nowo po restarcie bota, wyciągniemy dane z custom_id przycisków
         if applicant_id:
             self.children[0].custom_id = f"adm_accept:{applicant_id}"
             self.children[1].custom_id = f"adm_deny:{applicant_id}"
@@ -53,25 +52,8 @@ class AdminDecisionView(ui.View):
             return await interaction.response.send_message("❌ Brak uprawnień!", ephemeral=True)
         
         await interaction.response.defer()
-        
-        # Pobieramy ID gracza z custom_id przycisku
         applicant_id = int(button.custom_id.split(":")[1])
-        applicant = interaction.guild.get_member(applicant_id)
-        
-        config = load_config()
-        if config["role_id"] and applicant:
-            role = interaction.guild.get_role(int(config["role_id"]))
-            if role:
-                try: await applicant.add_roles(role)
-                except: pass
-        
-        if applicant:
-            try: await applicant.send(f"✅ Twoje podanie na event **{config['event_name']}** zostało zaakceptowane!")
-            except: pass
-            
-        await interaction.followup.send(f"🟢 Zaakceptowano podanie. Kanał zostanie usunięty za 5 sekund.")
-        await asyncio.sleep(5)
-        await interaction.channel.delete()
+        await wygraj_rekrutacje(interaction.guild, interaction.channel, applicant_id)
 
     @ui.button(label="Odrzuć", style=discord.ButtonStyle.danger, emoji="❌", custom_id="adm_deny:init")
     async def deny(self, interaction: discord.Interaction, button: ui.Button):
@@ -79,18 +61,39 @@ class AdminDecisionView(ui.View):
             return await interaction.response.send_message("❌ Brak uprawnień!", ephemeral=True)
             
         await interaction.response.defer()
-        
         applicant_id = int(button.custom_id.split(":")[1])
-        applicant = interaction.guild.get_member(applicant_id)
-        
-        config = load_config()
-        if applicant:
-            try: await applicant.send(f"❌ Twoje podanie na event **{config['event_name']}** zostało odrzucone.")
+        await przegraj_rekrutacje(interaction.guild, interaction.channel, applicant_id)
+
+# --- FUNKCJE POMOCNICZE DO AKCEPTACJI/ODRZUCENIA ---
+async def wygraj_rekrutacje(guild, channel, applicant_id):
+    applicant = guild.get_member(applicant_id)
+    config = load_config()
+    
+    if config["role_id"] and applicant:
+        role = guild.get_role(int(config["role_id"]))
+        if role:
+            try: await applicant.add_roles(role)
             except: pass
-            
-        await interaction.followup.send(f"🔴 Odrzucono podanie. Kanał zostanie usunięty za 5 sekund.")
-        await asyncio.sleep(5)
-        await interaction.channel.delete()
+    
+    if applicant:
+        try: await applicant.send(f"✅ Twoje podanie na event **{config['event_name']}** zostało zaakceptowane!")
+        except: pass
+        
+    await channel.send(f"🟢 Zaakceptowano podanie tekstem/przyciskiem. Kanał zostanie usunięty za 5 sekund.")
+    await asyncio.sleep(5)
+    await channel.delete()
+
+async def przegraj_rekrutacje(guild, channel, applicant_id):
+    applicant = guild.get_member(applicant_id)
+    config = load_config()
+    
+    if applicant:
+        try: await applicant.send(f"❌ Twoje podanie na event **{config['event_name']}** zostało odrzucone.")
+        except: pass
+        
+    await channel.send(f"🔴 Odrzucono podanie tekstem/przyciskiem. Kanał zostanie usunięty za 5 sekund.")
+    await asyncio.sleep(5)
+    await channel.delete()
 
 # --- FORMULARZ ---
 class RecruitmentModal(ui.Modal):
@@ -120,12 +123,12 @@ class RecruitmentModal(ui.Modal):
         channel = await interaction.guild.create_text_channel(
             f"podanie-{interaction.user.name}", 
             category=category, 
-            overwrites=overwrites
+            overwrites=overwrites,
+            topic=str(interaction.user.id) # Zapisujemy tu ID, żeby on_message wiedział do kogo należy kanał
         )
         
-        # Wysyłamy Panel Decyzji z dynamicznie przypisanym ID usera
         view = AdminDecisionView(applicant_id=interaction.user.id)
-        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}", view=view)
+        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}\n*Możesz kliknąć przycisk lub napisać na czacie **TAK** albo **NIE***", view=view)
         
         ans = discord.Embed(title=f"📝 Podanie - {interaction.user.name}", color=discord.Color.gold())
         ans.add_field(name="Pytanie 1", value=self.q1.value, inline=False)
@@ -154,9 +157,35 @@ class Rekrutacja(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        # Rejestrujemy widoki jako stałe (persistent), żeby przyciski działały zawsze, nawet po restarcie bota!
         self.bot.add_view(StartRecruitmentView())
         self.bot.add_view(AdminDecisionView())
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        # Ignorujemy boty
+        if message.author.bot:
+            return
+
+        # Sprawdzamy czy to kanał podania (szukamy po nazwie i kategorii)
+        if message.channel.category and message.channel.category.id == CATEGORY_ID and message.channel.name.startswith("podanie-"):
+            # Sprawdzenie roli admina u piszącego
+            if ADMIN_ROLE_ID not in [role.id for role in message.author.roles]:
+                return
+
+            text = message.content.strip().upper()
+            
+            # Pobieramy ID gracza z tematu kanału (topic)
+            if not message.channel.topic:
+                return
+            try:
+                applicant_id = int(message.channel.topic)
+            except ValueError:
+                return
+
+            if text == "TAK":
+                await wygraj_rekrutacje(message.guild, message.channel, applicant_id)
+            elif text == "NIE":
+                await przegraj_rekrutacje(message.guild, message.channel, applicant_id)
 
     @commands.command()
     @commands.has_permissions(administrator=True)
