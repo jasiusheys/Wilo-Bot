@@ -12,14 +12,13 @@ DATA_FILE = "podania.json"
 
 # LISTA TWOICH TRZECH KATEGORII
 CATEGORY_IDS = [
-    1511466087278051410,  # 1. Kategoria
-    1511687027727401010,  # 2. Kategoria
-    1511687075601317948   # 3. Kategoria
+    1511466087278051410,
+    1511687027727401010,
+    1511687075601317948
 ]
 
-# --- TUTAJ WPISZ TYLKO CYFRY TWOJEJ EMOTKI ---
-# Wpisz na discordzie \:wilo: i skopiuj same cyfry z końca
-WILO_EMOTE_ID = "123456789012345678" 
+# --- WPISZ TUTAJ SAME CYFRY EMOTKI ---
+WILO_ID = "TUTAJ_WKLEJ_ID" 
 
 def load_config():
     if not os.path.exists(CONFIG_FILE):
@@ -72,7 +71,6 @@ class AdminDecisionView(ui.View):
         applicant_id = int(button.custom_id.split(":")[1])
         await przegraj_rekrutacje(interaction.guild, interaction.channel, applicant_id)
 
-# --- FUNKCJE POMOCNICZE ---
 async def wygraj_rekrutacje(guild, channel, applicant_id):
     applicant = guild.get_member(applicant_id)
     config = load_config()
@@ -82,9 +80,9 @@ async def wygraj_rekrutacje(guild, channel, applicant_id):
             try: await applicant.add_roles(role)
             except: pass
     if applicant:
-        try: await applicant.send(f"✅ Twoje podanie na event **{config['event_name']}** zostało zaakceptowane!")
+        try: await applicant.send(f"✅ Podanie na **{config['event_name']}** zaakceptowane!")
         except: pass
-    await channel.send(f"🟢 Zaakceptowano. Usuwanie za 5s.")
+    await channel.send("🟢 Zaakceptowano. Usuwanie kanału...")
     await asyncio.sleep(5)
     await channel.delete()
 
@@ -92,22 +90,23 @@ async def przegraj_rekrutacje(guild, channel, applicant_id):
     applicant = guild.get_member(applicant_id)
     config = load_config()
     if applicant:
-        try: await applicant.send(f"❌ Twoje podanie na event **{config['event_name']}** zostało odrzucone.")
+        try: await applicant.send(f"❌ Podanie na **{config['event_name']}** odrzucone.")
         except: pass
-    await channel.send(f"🔴 Odrzucono. Usuwanie za 5s.")
+    await channel.send("🔴 Odrzucono. Usuwanie kanału...")
     await asyncio.sleep(5)
     await channel.delete()
 
 # --- FORMULARZ ---
 class RecruitmentModal(ui.Modal):
     def __init__(self):
-        super().__init__(title="Zgłoszenie na Event")
+        # KRÓTKI TYTUŁ, żeby uniknąć błędu "Czynność nie powiodła się"
+        super().__init__(title="Formularz Rekrutacyjny")
 
     q1 = ui.TextInput(label='Wiek / Premium?', style=discord.TextStyle.paragraph, required=True)
     q2 = ui.TextInput(label='Nick MC / Zasady', style=discord.TextStyle.paragraph, required=True)
     q3 = ui.TextInput(label='Czym jest RP?', style=discord.TextStyle.paragraph, required=True)
     q4 = ui.TextInput(label='Doświadczenie', style=discord.TextStyle.paragraph, required=True)
-    q5 = ui.TextInput(label='Link do filmu (Mikro+POV)', style=discord.TextStyle.paragraph, required=True)
+    q5 = ui.TextInput(label='Mikrofon + POV (Link)', style=discord.TextStyle.paragraph, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         if interaction.user.id in load_applicants():
@@ -123,9 +122,20 @@ class RecruitmentModal(ui.Modal):
                 break
         
         if not selected_category:
-            return await interaction.followup.send("❌ Wszystkie poczekalnie są pełne!", ephemeral=True)
+            return await interaction.followup.send("❌ Brak wolnych miejsc w kategoriach!", ephemeral=True)
 
         save_applicant(interaction.user.id)
         
         overwrites = {
-            interaction.guild.default_role: discord.PermissionOverwrite(read_messages
+            interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        
+        channel = await interaction.guild.create_text_channel(
+            f"podanie-{interaction.user.name}", category=selected_category, overwrites=overwrites, topic=str(interaction.user.id)
+        )
+        
+        ans = discord.Embed(title=f"📝 Podanie: {interaction.user.name}", color=discord.Color.gold())
+        ans.add_field(name="Pytanie 1", value=self.q1.value, inline=False)
+        ans.add_field(name="Pytanie 2", value=self.q2.value,
