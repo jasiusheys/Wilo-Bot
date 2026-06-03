@@ -118,12 +118,11 @@ class RecruitmentModal(ui.Modal):
         super().__init__(title="Formularz Rekrutacyjny")
         self.event_name = event_name
 
-    q1 = ui.TextInput(label='Wiek / Czas / Premium', style=discord.TextStyle.paragraph, required=True)
-    q2 = ui.TextInput(label='Nick MC / Zasady', style=discord.TextStyle.paragraph, required=True)
-    q3 = ui.TextInput(label='RP / Reakcja na Wila', style=discord.TextStyle.paragraph, required=True)
-    q4 = ui.TextInput(label='Doświadczenie', style=discord.TextStyle.paragraph, required=True)
-    q5 = ui.TextInput(label='Link do filmu', style=discord.TextStyle.paragraph, required=True)
-
+q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
+    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Rozumiesz, że na nagrywce jest zakaz cheatów oraz zabronionych modów/txt?', style=discord.TextStyle.paragraph, required=True)
+    q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybyś spotkał Wila na mapie', style=discord.TextStyle.paragraph, required=True)
+    q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach? u kogo?', style=discord.TextStyle.paragraph, required=True)
+    q5 = ui.TextInput(label='5. Link do filmu', placeholder='Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', style=discord.TextStyle.paragraph, required=True)
     async def on_submit(self, interaction: discord.Interaction):
         applicants = load_applicants()
         if [interaction.user.id, self.event_name.lower()] in applicants:
