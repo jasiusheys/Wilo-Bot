@@ -10,6 +10,9 @@ ADMIN_ROLE_ID = 1511396320173359144
 CONFIG_FILE = "config_rekrutacja.json"
 DATA_FILE = "podania.json"
 
+# TUTAJ WKLEJ ID SWOJEJ EMOTKI PO WPISANIU \:wilo: NA CZACIE DISCORDA
+EMOTKA_WILO = "<:wilo:123456789012345678>"
+
 # LISTA TWOICH TRZECH KATEGORII (SZUKANIE WOLNEGO MIEJSCA)
 CATEGORY_IDS = [
     1511466087278051410,  # 1. Kategoria
@@ -189,7 +192,9 @@ class Rekrutacja(commands.Cog):
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
         save_config(nazwa, ranga_id)
         clear_applicants()
-        embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
+        
+        # EDYTOWANY EMBED: Stara klapsa filmowa została zastąpiona Twoją zmienną EMOTKA_WILO
+        embed = discord.Embed(title=f"{EMOTKA_WILO} REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
         await ctx.send(embed=embed, view=StartRecruitmentView())
         await ctx.message.delete()
 
