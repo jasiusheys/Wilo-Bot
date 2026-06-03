@@ -17,10 +17,6 @@ CATEGORY_IDS = [
     1511687075601317948
 ]
 
-# --- TUTAJ WPISZ SAME CYFRY SWOJEJ EMOTKI ---
-# Wpisz na Discordzie \:wilo:, aby uzyskać poprawne ID
-WILO_ID = "123456789012345678" 
-
 def load_config():
     if not os.path.exists(CONFIG_FILE):
         return {}
@@ -50,7 +46,6 @@ def save_applicant(user_id, event_name):
 
 def clear_applicants_for_event(event_name):
     applicants = load_applicants()
-    # Filtrujemy, zostawiając tylko zgłoszenia z innych eventów
     applicants = [x for x in applicants if isinstance(x, list) and x[1] != event_name.lower()]
     with open(DATA_FILE, "w") as f:
         json.dump(applicants, f)
@@ -91,7 +86,7 @@ async def wygraj_rekrutacje(guild, channel, applicant_id, event_name):
             try: await applicant.add_roles(role)
             except: pass
     if applicant:
-        try: await applicant.send(f"✅ Twoje podanie na event **{event_name.upper()}** zostało zaakceptowane!")
+        try: await applicant.send(f"✅ Hej twoje podanie na event **{event_name.upper()}** zostało zaakceptowane i otrzymałeś rangę na serwerze Wilo-Eventy!")
         except: pass
     await channel.send("🟢 Zaakceptowano. Kanał zostanie usunięty za 5 sekund.")
     await asyncio.sleep(5)
@@ -100,7 +95,7 @@ async def wygraj_rekrutacje(guild, channel, applicant_id, event_name):
 async def przegraj_rekrutacje(guild, channel, applicant_id, event_name):
     applicant = guild.get_member(applicant_id)
     if applicant:
-        try: await applicant.send(f"❌ Twoje podanie na event **{event_name.upper()}** zostało odrzucone.")
+        try: await applicant.send(f"❌ Hej niestety twoje podanie na event **{event_name.upper()}** zostało odrzucone powodzenia na przyszłych eventach!")
         except: pass
     await channel.send("🔴 Odrzucono. Kanał zostanie usunięty za 5 sekund.")
     await asyncio.sleep(5)
@@ -109,15 +104,14 @@ async def przegraj_rekrutacje(guild, channel, applicant_id, event_name):
 # --- FORMULARZ ---
 class RecruitmentModal(ui.Modal):
     def __init__(self, event_name: str):
-        # Stały tytuł, aby uniknąć limitu 45 znaków i błędów na Railway
         super().__init__(title="Formularz Rekrutacyjny")
         self.event_name = event_name
 
-    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
-    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', style=discord.TextStyle.paragraph, required=True)
-    q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', style=discord.TextStyle.paragraph, required=True)
-    q4 = ui.TextInput(label='4. Doświadczenie na eventach', style=discord.TextStyle.paragraph, required=True)
-    q5 = ui.TextInput(label='5. Link do filmu', style=discord.TextStyle.paragraph, required=True)
+    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
+    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Rozumiesz, że na nagrywce jest zakaz cheatów oraz zabronionych modów/txt?', style=discord.TextStyle.paragraph, required=True)
+    q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybyś spotkał Wila na mapie', style=discord.TextStyle.paragraph, required=True)
+    q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach? u kogo?', style=discord.TextStyle.paragraph, required=True)
+    q5 = ui.TextInput(label='5. Link do filmu', placeholder='Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', style=discord.TextStyle.paragraph, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         applicants = load_applicants()
@@ -134,7 +128,7 @@ class RecruitmentModal(ui.Modal):
                 break
         
         if not selected_category:
-            return await interaction.followup.send("❌ Brak wolnych miejsc w kategoriach rekrutacyjnych!", ephemeral=True)
+            return await interaction.followup.send("❌ Wszystkie poczekalnie rekrutacyjne są obecnie pełne! Spróbuj wysłać podanie za chwilę, gdy administracja sprawdzi obecne zgłoszenia.", ephemeral=True)
 
         save_applicant(interaction.user.id, self.event_name)
         
@@ -159,7 +153,7 @@ class RecruitmentModal(ui.Modal):
         ans.add_field(name="Pytanie 5", value=self.q5.value, inline=False)
         
         view = AdminDecisionView(applicant_id=interaction.user.id, event_name=self.event_name)
-        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}\nEvent: **{self.event_name}**", view=view)
+        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}\nMożesz kliknąć przycisk lub pisać **TAK** / **NIE**\nEvent: **{self.event_name}**", view=view)
         await channel.send(embed=ans)
         await interaction.followup.send(f"✅ Wysłano! Sprawdź kanał: {channel.mention}", ephemeral=True)
 
@@ -168,7 +162,6 @@ class StartRecruitmentView(ui.View):
     def __init__(self, event_name: str = ""):
         super().__init__(timeout=None)
         if event_name:
-            # Custom_id zawiera nazwę eventu, aby bot wiedział co otworzyć
             self.children[0].custom_id = f"persistent_start_rec:{event_name}"
 
     @ui.button(label="Złóż podanie", style=discord.ButtonStyle.primary, custom_id="persistent_start_rec:default")
@@ -210,10 +203,10 @@ class Rekrutacja(commands.Cog):
         save_config(nazwa, ranga_id)
         clear_applicants_for_event(nazwa)
         
-        full_emote = f"<:wilo:{WILO_ID}>"
+        # Przywrócona kamera z oryginalnego kodu
         embed = discord.Embed(
-            title=f"{full_emote} REKRUTACJA: {nazwa.upper()}", 
-            description="Kliknij przycisk poniżej, aby wypełnić formularz!", 
+            title=f"🎥 REKRUTACJA: {nazwa.upper()}", 
+            description="Kliknij przycisk poniżej!", 
             color=discord.Color.gold()
         )
         await ctx.send(embed=embed, view=StartRecruitmentView(event_name=nazwa))
