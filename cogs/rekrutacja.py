@@ -74,7 +74,7 @@ async def wygraj_rekrutacje(guild, channel, applicant_id):
             try: await applicant.add_roles(role)
             except: pass
     if applicant:
-        try: await applicant.send(f"✅ Twoje podanie na event **{config['event_name']}** zostało zaakceptowane!")
+        try: await applicant.send(f"✅ Hej twoje podanie na event **{config['event_name']}** zostało zaakceptowane i otrzymałeś rangę na serwerze Wilo-Eventy!")
         except: pass
     await channel.send(f"🟢 Zaakceptowano. Kanał zostanie usunięty za 5 sekund.")
     await asyncio.sleep(5)
