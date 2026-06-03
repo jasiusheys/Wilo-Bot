@@ -64,34 +64,29 @@ class AdminDecisionView(ui.View):
         applicant_id = int(button.custom_id.split(":")[1])
         await przegraj_rekrutacje(interaction.guild, interaction.channel, applicant_id)
 
-# --- FUNKCJE POMOCNICZE DO AKCEPTACJI/ODRZUCENIA ---
+# --- FUNKCJE POMOCNICZE ---
 async def wygraj_rekrutacje(guild, channel, applicant_id):
     applicant = guild.get_member(applicant_id)
     config = load_config()
-    
     if config["role_id"] and applicant:
         role = guild.get_role(int(config["role_id"]))
         if role:
             try: await applicant.add_roles(role)
             except: pass
-    
     if applicant:
         try: await applicant.send(f"✅ Twoje podanie na event **{config['event_name']}** zostało zaakceptowane!")
         except: pass
-        
-    await channel.send(f"🟢 Zaakceptowano podanie tekstem/przyciskiem. Kanał zostanie usunięty za 5 sekund.")
+    await channel.send(f"🟢 Zaakceptowano. Kanał zostanie usunięty za 5 sekund.")
     await asyncio.sleep(5)
     await channel.delete()
 
 async def przegraj_rekrutacje(guild, channel, applicant_id):
     applicant = guild.get_member(applicant_id)
     config = load_config()
-    
     if applicant:
         try: await applicant.send(f"❌ Twoje podanie na event **{config['event_name']}** zostało odrzucone.")
         except: pass
-        
-    await channel.send(f"🔴 Odrzucono podanie tekstem/przyciskiem. Kanał zostanie usunięty za 5 sekund.")
+    await channel.send(f"🔴 Odrzucono. Kanał zostanie usunięty za 5 sekund.")
     await asyncio.sleep(5)
     await channel.delete()
 
@@ -100,42 +95,19 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-  q1 = ui.TextInput(
-        label='1. Wiek / Czas / Premium', 
-        placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', 
-        style=discord.TextStyle.paragraph, # To powiększa pole w dół
-        required=True
-    )
-    q2 = ui.TextInput(
-        label='2. Nick / Zasady', 
-        placeholder='Nick z MC / Rozumiesz, że na nagrywce jest zakaz cheatów oraz zabronionych modów/txt?', 
-        style=discord.TextStyle.paragraph, # To powiększa pole w dół
-        required=True
-    )
-    q3 = ui.TextInput(
-        label='3. RP / Reakcja na Wila', 
-        placeholder='Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybyś spotkał Wila na mapie', 
-        style=discord.TextStyle.paragraph, # To powiększa pole w dół
-        required=True
-    )
-    q4 = ui.TextInput(
-        label='4. Doświadczenie', 
-        placeholder='Czy grałeś już na takich eventach? u kogo?', 
-        style=discord.TextStyle.paragraph, # To powiększa pole w dół
-        required=True
-    )
-    q5 = ui.TextInput(
-        label='5. Link do filmu', 
-        placeholder='Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', 
-        style=discord.TextStyle.paragraph, # To powiększa pole w dół
-        required=True
-    )
+    q1 = ui.TextInput(label='1. Wiek / Czas / Premium', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
+    q2 = ui.TextInput(label='2. Nick / Zasady', placeholder='Nick z MC / Rozumiesz, że na nagrywce jest zakaz cheatów oraz zabronionych modów/txt?', style=discord.TextStyle.paragraph, required=True)
+    q3 = ui.TextInput(label='3. RP / Reakcja na Wila', placeholder='Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybyś spotkał Wila na mapie', style=discord.TextStyle.paragraph, required=True)
+    q4 = ui.TextInput(label='4. Doświadczenie', placeholder='Czy grałeś już na takich eventach? u kogo?', style=discord.TextStyle.paragraph, required=True)
+    q5 = ui.TextInput(label='5. Link do filmu', placeholder='Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', style=discord.TextStyle.paragraph, required=True)
+
     async def on_submit(self, interaction: discord.Interaction):
+        # BLOKADA: Sprawdzanie czy użytkownik już wysłał podanie
         if interaction.user.id in load_applicants():
-            return await interaction.response.send_message("❌ Już wysłałeś podanie!", ephemeral=True)
+            return await interaction.response.send_message("❌ Już wysłałeś podanie na ten event!", ephemeral=True)
         
         await interaction.response.defer(ephemeral=True, thinking=True)
-        save_applicant(interaction.user.id)
+        save_applicant(interaction.user.id) # Zapisanie użytkownika na listę
         
         category = interaction.guild.get_channel(CATEGORY_ID)
         overwrites = {
@@ -145,14 +117,11 @@ class RecruitmentModal(ui.Modal):
         }
         
         channel = await interaction.guild.create_text_channel(
-            f"podanie-{interaction.user.name}", 
-            category=category, 
-            overwrites=overwrites,
-            topic=str(interaction.user.id) # Zapisujemy tu ID, żeby on_message wiedział do kogo należy kanał
+            f"podanie-{interaction.user.name}", category=category, overwrites=overwrites, topic=str(interaction.user.id)
         )
         
+        # Tworzenie widoku decyzji dla adminów
         view = AdminDecisionView(applicant_id=interaction.user.id)
-
         
         ans = discord.Embed(title=f"📝 Podanie - {interaction.user.name}", color=discord.Color.gold())
         ans.add_field(name="Pytanie 1", value=self.q1.value, inline=False)
@@ -161,10 +130,12 @@ class RecruitmentModal(ui.Modal):
         ans.add_field(name="Pytanie 4", value=self.q4.value, inline=False)
         ans.add_field(name="Pytanie 5", value=self.q5.value, inline=False)
         
+        # Wysłanie panelu z przyciskami i odpowiedzi gracza
+        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}", view=view)
         await channel.send(embed=ans)
         await interaction.followup.send(f"✅ Wysłano! Sprawdź kanał: {channel.mention}", ephemeral=True)
 
-# --- WIDOK PRZYCISKU STARTOWEGO ---
+# --- PRZYCISK STARTOWY ---
 class StartRecruitmentView(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -186,37 +157,22 @@ class Rekrutacja(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        # Ignorujemy boty
-        if message.author.bot:
-            return
-
-        # Sprawdzamy czy to kanał podania (szukamy po nazwie i kategorii)
+        if message.author.bot: return
         if message.channel.category and message.channel.category.id == CATEGORY_ID and message.channel.name.startswith("podanie-"):
-            # Sprawdzenie roli admina u piszącego
-            if ADMIN_ROLE_ID not in [role.id for role in message.author.roles]:
-                return
-
+            if ADMIN_ROLE_ID not in [role.id for role in message.author.roles]: return
             text = message.content.strip().upper()
-            
-            # Pobieramy ID gracza z tematu kanału (topic)
-            if not message.channel.topic:
-                return
-            try:
-                applicant_id = int(message.channel.topic)
-            except ValueError:
-                return
+            if not message.channel.topic: return
+            try: applicant_id = int(message.channel.topic)
+            except: return
 
-            if text == "TAK":
-                await wygraj_rekrutacje(message.guild, message.channel, applicant_id)
-            elif text == "NIE":
-                await przegraj_rekrutacje(message.guild, message.channel, applicant_id)
+            if text == "TAK": await wygraj_rekrutacje(message.guild, message.channel, applicant_id)
+            elif text == "NIE": await przegraj_rekrutacje(message.guild, message.channel, applicant_id)
 
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
         save_config(nazwa, ranga_id)
-        clear_applicants()
-        
+        clear_applicants() # AUTOMATYCZNE czyszczenie listy przy nowym evencie
         embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
         await ctx.send(embed=embed, view=StartRecruitmentView())
         await ctx.message.delete()
