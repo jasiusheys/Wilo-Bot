@@ -100,35 +100,35 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-   q1 = ui.TextInput(
-        label='1. Wiek / Event / Premium?', 
+  q1 = ui.TextInput(
+        label='1. Wiek / Czas / Premium', 
         placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', 
-        style=discord.TextStyle.paragraph, # Zmienione na duże pole
-        max_length=100
+        style=discord.TextStyle.paragraph, # To powiększa pole w dół
+        required=True
     )
     q2 = ui.TextInput(
         label='2. Nick / Zasady', 
-        placeholder='Twój nick? / Czy rozumiesz zakaz cheatów i modów?', 
-        style=discord.TextStyle.paragraph, # Zmienione na duże pole
-        max_length=100
+        placeholder='Nick z MC / Rozumiesz, że na nagrywce jest zakaz cheatów oraz zabronionych modów/txt?', 
+        style=discord.TextStyle.paragraph, # To powiększa pole w dół
+        required=True
     )
     q3 = ui.TextInput(
-        label='3. RP / Scenka', 
-        placeholder='Wyjaśnij czym jest RP? / Co byś zrobił gdybyś spotkał Wila?', 
-        style=discord.TextStyle.paragraph,
-        max_length=300
+        label='3. RP / Reakcja na Wila', 
+        placeholder='Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybyś spotkał Wila na mapie', 
+        style=discord.TextStyle.paragraph, # To powiększa pole w dół
+        required=True
     )
     q4 = ui.TextInput(
         label='4. Doświadczenie', 
-        placeholder='Czy grałeś już na takich eventach? U kogo?', 
-        style=discord.TextStyle.paragraph,
-        max_length=200
+        placeholder='Czy grałeś już na takich eventach? u kogo?', 
+        style=discord.TextStyle.paragraph, # To powiększa pole w dół
+        required=True
     )
     q5 = ui.TextInput(
         label='5. Link do filmu', 
-        placeholder='Wyślij link do filmu (Twój Mikrofon + POV z gry)', 
-        style=discord.TextStyle.paragraph,
-        max_length=200
+        placeholder='Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', 
+        style=discord.TextStyle.paragraph, # To powiększa pole w dół
+        required=True
     )
     async def on_submit(self, interaction: discord.Interaction):
         if interaction.user.id in load_applicants():
