@@ -116,11 +116,11 @@ class RecruitmentModal(ui.Modal):
         super().__init__(title="Formularz Rekrutacyjny")
         self.event_name = event_name
 
-    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
-    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', style=discord.TextStyle.paragraph, required=True)
-    q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', style=discord.TextStyle.paragraph, required=True)
-    q4 = ui.TextInput(label='4. Doświadczenie na eventach', style=discord.TextStyle.paragraph, required=True)
-    q5 = ui.TextInput(label='5. Link do filmu', style=discord.TextStyle.paragraph, required=True)
+    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
+    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Rozumiesz, że na nagrywce jest zakaz cheatów oraz zabronionych modów/txt?', style=discord.TextStyle.paragraph, required=True)
+    q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybyś spotkał Wila na mapie', style=discord.TextStyle.paragraph, required=True)
+    q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach? u kogo?', style=discord.TextStyle.paragraph, required=True)
+    q5 = ui.TextInput(label='5. Link do filmu', placeholder='Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', style=discord.TextStyle.paragraph, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         applicants = load_applicants()
@@ -155,7 +155,11 @@ class RecruitmentModal(ui.Modal):
         )
         
         ans = discord.Embed(title=f"📝 Podanie: {self.event_name.upper()} - {interaction.user.name}", color=discord.Color.gold())
-        ans.add_field(name="Odpowiedzi", value=f"1. {self.q1.value}\n2. {self.q2.value}\n3. {self.q3.value}\n4. {self.q4.value}\n5. {self.q5.value}", inline=False)
+        ans.add_field(name="Pytanie 1", value=self.q1.value, inline=False)
+        ans.add_field(name="Pytanie 2", value=self.q2.value, inline=False)
+        ans.add_field(name="Pytanie 3", value=self.q3.value, inline=False)
+        ans.add_field(name="Pytanie 4", value=self.q4.value, inline=False)
+        ans.add_field(name="Pytanie 5", value=self.q5.value, inline=False)
         
         view = AdminDecisionView(applicant_id=interaction.user.id, event_name=self.event_name)
         await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}\nEvent: **{self.event_name}**", view=view)
@@ -189,7 +193,6 @@ class Rekrutacja(commands.Cog):
         if message.author.bot: return
         if not message.guild: return
         
-        # Sprawdzanie czy kanał to podanie
         if message.channel.category and message.channel.category.id in CATEGORY_IDS and message.channel.name.startswith("podanie-"):
             if not has_mod_perms(message.author): return
             
