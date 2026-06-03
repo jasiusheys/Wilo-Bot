@@ -95,19 +95,18 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-    q1 = ui.TextInput(label='1. Wiek / Czas? / Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
-    q2 = ui.TextInput(label='2. Twój nick z mc  / Zasady', placeholder='Nick z MC / Rozumiesz, że na nagrywce jest totalny zakaz grania na cheatach oraz zabronionych modach/txt?', style=discord.TextStyle.paragraph, required=True)
+    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
+    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Rozumiesz, że na nagrywce jest zakaz cheatów oraz zabronionych modów/txt?', style=discord.TextStyle.paragraph, required=True)
     q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybyś spotkał Wila na mapie', style=discord.TextStyle.paragraph, required=True)
-    q4 = ui.TextInput(label='4. Doświadczenie na takich eventach', placeholder='Czy grałeś już na takich eventach? u kogo?', style=discord.TextStyle.paragraph, required=True)
+    q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach? u kogo?', style=discord.TextStyle.paragraph, required=True)
     q5 = ui.TextInput(label='5. Link do filmu', placeholder='Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', style=discord.TextStyle.paragraph, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # BLOKADA: Sprawdzanie czy użytkownik już wysłał podanie
         if interaction.user.id in load_applicants():
             return await interaction.response.send_message("❌ Już wysłałeś podanie na ten event!", ephemeral=True)
         
         await interaction.response.defer(ephemeral=True, thinking=True)
-        save_applicant(interaction.user.id) # Zapisanie użytkownika na listę
+        save_applicant(interaction.user.id)
         
         category = interaction.guild.get_channel(CATEGORY_ID)
         overwrites = {
@@ -120,9 +119,7 @@ class RecruitmentModal(ui.Modal):
             f"podanie-{interaction.user.name}", category=category, overwrites=overwrites, topic=str(interaction.user.id)
         )
         
-        # Tworzenie widoku decyzji dla adminów
         view = AdminDecisionView(applicant_id=interaction.user.id)
-        
         ans = discord.Embed(title=f"📝 Podanie - {interaction.user.name}", color=discord.Color.gold())
         ans.add_field(name="Pytanie 1", value=self.q1.value, inline=False)
         ans.add_field(name="Pytanie 2", value=self.q2.value, inline=False)
@@ -130,8 +127,7 @@ class RecruitmentModal(ui.Modal):
         ans.add_field(name="Pytanie 4", value=self.q4.value, inline=False)
         ans.add_field(name="Pytanie 5", value=self.q5.value, inline=False)
         
-        # Wysłanie panelu z przyciskami i odpowiedzi gracza
-        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}", view=view)
+        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}\nMożesz kliknąć przycisk lub pisać **TAK** / **NIE**", view=view)
         await channel.send(embed=ans)
         await interaction.followup.send(f"✅ Wysłano! Sprawdź kanał: {channel.mention}", ephemeral=True)
 
@@ -172,7 +168,7 @@ class Rekrutacja(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
         save_config(nazwa, ranga_id)
-        clear_applicants() # AUTOMATYCZNE czyszczenie listy przy nowym evencie
+        clear_applicants()
         embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
         await ctx.send(embed=embed, view=StartRecruitmentView())
         await ctx.message.delete()
