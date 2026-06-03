@@ -100,7 +100,7 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-    q1 = ui.TextInput(label='1. Wiek / Event / Premium?', placeholder='Wiek, Tak, Tak', style=discord.TextStyle.short)
+    q1 = ui.TextInput(label='1. Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', placeholder='Wiek, Tak, Tak', style=discord.TextStyle.short)
     q2 = ui.TextInput(label='2. Nick MC / Zakaz cheatów?', placeholder='Nick, zgadzam się', style=discord.TextStyle.short)
     q3 = ui.TextInput(label='3. Co to RP? + Scenka z Wilem?', placeholder='Opisz tutaj...', style=discord.TextStyle.paragraph)
     q4 = ui.TextInput(label='4. Doświadczenie u kogo?', placeholder='Tak (u kogo) / Nie', style=discord.TextStyle.short)
