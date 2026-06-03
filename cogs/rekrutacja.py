@@ -100,11 +100,36 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-    q1 = ui.TextInput(label='1. Wiek / Event / Premium?', placeholder='Ile masz lat? Czy zagrasz cały event? Czy masz mc premium?', style=discord.TextStyle.short)
-    q2 = ui.TextInput(label='2. Nick / Zasady', placeholder='Podaj nick. Czy akceptujesz zakaz cheatów i modów?', style=discord.TextStyle.short)
-    q3 = ui.TextInput(label='3. RP / Reakcja na Wila', placeholder='Co to RP? Co zrobisz, gdy spotkasz Wila na mapie?', style=discord.TextStyle.paragraph)
-    q4 = ui.TextInput(label='4. Doświadczenie', placeholder='Czy grałeś już na takich eventach? U kogo?', style=discord.TextStyle.short)
-    q5 = ui.TextInput(label='5. Link do filmu', placeholder='Wklej link do filmu (Mikrofon + POV z gry)', style=discord.TextStyle.paragraph)
+   q1 = ui.TextInput(
+        label='1. Wiek / Event / Premium?', 
+        placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', 
+        style=discord.TextStyle.paragraph, # Zmienione na duże pole
+        max_length=100
+    )
+    q2 = ui.TextInput(
+        label='2. Nick / Zasady', 
+        placeholder='Twój nick? / Czy rozumiesz zakaz cheatów i modów?', 
+        style=discord.TextStyle.paragraph, # Zmienione na duże pole
+        max_length=100
+    )
+    q3 = ui.TextInput(
+        label='3. RP / Scenka', 
+        placeholder='Wyjaśnij czym jest RP? / Co byś zrobił gdybyś spotkał Wila?', 
+        style=discord.TextStyle.paragraph,
+        max_length=300
+    )
+    q4 = ui.TextInput(
+        label='4. Doświadczenie', 
+        placeholder='Czy grałeś już na takich eventach? U kogo?', 
+        style=discord.TextStyle.paragraph,
+        max_length=200
+    )
+    q5 = ui.TextInput(
+        label='5. Link do filmu', 
+        placeholder='Wyślij link do filmu (Twój Mikrofon + POV z gry)', 
+        style=discord.TextStyle.paragraph,
+        max_length=200
+    )
     async def on_submit(self, interaction: discord.Interaction):
         if interaction.user.id in load_applicants():
             return await interaction.response.send_message("❌ Już wysłałeś podanie!", ephemeral=True)
