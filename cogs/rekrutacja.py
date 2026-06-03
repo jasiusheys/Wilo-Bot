@@ -84,7 +84,7 @@ async def przegraj_rekrutacje(guild, channel, applicant_id):
     applicant = guild.get_member(applicant_id)
     config = load_config()
     if applicant:
-        try: await applicant.send(f"❌ Twoje podanie na event **{config['event_name']}** zostało odrzucone.")
+        try: await applicant.send(f"❌ Hej niestety twoje podanie na event **{config['event_name']}** zostało odrzucone powodzenia na przyszłych eventach!")
         except: pass
     await channel.send(f"🔴 Odrzucono. Kanał zostanie usunięty za 5 sekund.")
     await asyncio.sleep(5)
