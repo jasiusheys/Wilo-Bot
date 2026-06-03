@@ -189,7 +189,7 @@ class Rekrutacja(commands.Cog):
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
         save_config(nazwa, ranga_id)
         clear_applicants()
-        embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
+        embed = discord.Embed(title=f"🎥 {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
         await ctx.send(embed=embed, view=StartRecruitmentView())
         await ctx.message.delete()
 
