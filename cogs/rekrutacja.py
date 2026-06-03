@@ -7,7 +7,8 @@ import asyncio
 
 # --- KONFIGURACJA ---
 ADMIN_ROLE_ID = 1511396320173359144
-MOD_ACCESS_ROLE_ID = 1511727936515080252  # TWOJA NOWA ROLA
+# ROLA SPRAWDZAJĄCA (MODERATOR) - TYLKO DO DOSTĘPU I AKCEPTACJI
+MOD_ACCESS_ROLE_ID = 1511727936515080252  
 CONFIG_FILE = "config_rekrutacja.json"
 DATA_FILE = "podania.json"
 
@@ -51,11 +52,12 @@ def clear_applicants_for_event(event_name):
     with open(DATA_FILE, "w") as f:
         json.dump(applicants, f)
 
-# FUNKCJA SPRAWDZAJĄCA UPRAWNIENIA
+# --- FUNKCJA SPRAWDZAJĄCA DOSTĘP REKRUTERA ---
 def has_mod_perms(user):
     if not hasattr(user, 'roles'): return False
     user_role_ids = [role.id for role in user.roles]
-    return (ADMIN_ROLE_ID in user_role_ids) or (MOD_ACCESS_ROLE_ID in user_role_ids)
+    # Dostęp ma Admin serwera, główny Admin bota LUB rola sprawdzająca podania
+    return (ADMIN_ROLE_ID in user_role_ids) or (MOD_ACCESS_ROLE_ID in user_role_ids) or user.guild_permissions.administrator
 
 # --- PANEL DECYZJI ---
 class AdminDecisionView(ui.View):
@@ -68,7 +70,7 @@ class AdminDecisionView(ui.View):
     @ui.button(label="Zaakceptuj", style=discord.ButtonStyle.success, emoji="✅", custom_id="adm_accept:init:init")
     async def accept(self, interaction: discord.Interaction, button: ui.Button):
         if not has_mod_perms(interaction.user):
-            return await interaction.response.send_message("❌ Brak uprawnień!", ephemeral=True)
+            return await interaction.response.send_message("❌ Nie masz rangi sprawdzającej, aby decydować o podaniach!", ephemeral=True)
         await interaction.response.defer()
         parts = button.custom_id.split(":")
         await wygraj_rekrutacje(interaction.guild, interaction.channel, int(parts[1]), parts[2])
@@ -76,7 +78,7 @@ class AdminDecisionView(ui.View):
     @ui.button(label="Odrzuć", style=discord.ButtonStyle.danger, emoji="❌", custom_id="adm_deny:init:init")
     async def deny(self, interaction: discord.Interaction, button: ui.Button):
         if not has_mod_perms(interaction.user):
-            return await interaction.response.send_message("❌ Brak uprawnień!", ephemeral=True)
+            return await interaction.response.send_message("❌ Nie masz rangi sprawdzającej, aby decydować o podaniach!", ephemeral=True)
         await interaction.response.defer()
         parts = button.custom_id.split(":")
         await przegraj_rekrutacje(interaction.guild, interaction.channel, int(parts[1]), parts[2])
@@ -91,11 +93,12 @@ async def wygraj_rekrutacje(guild, channel, applicant_id, event_name):
         role = guild.get_role(int(role_id))
         if role:
             try: await applicant.add_roles(role)
-            except: pass
+            except Exception as e: print(f"Błąd nadawania rangi eventowej: {e}")
+            
     if applicant:
-        try: await applicant.send(f"✅ Hej twoje podanie na event **{event_name.upper()}** zostało zaakceptowane!")
+        try: await applicant.send(f"✅ Hej! Twoje podanie na event **{event_name.upper()}** zostało zaakceptowane!")
         except: pass
-    await channel.send("🟢 Zaakceptowano. Kanał zostanie usunięty za 5 sekund.")
+    await channel.send("🟢 Zaakceptowano podanie. Kanał zostanie usunięty za 5 sekund.")
     await asyncio.sleep(5)
     try: await channel.delete()
     except: pass
@@ -103,9 +106,9 @@ async def wygraj_rekrutacje(guild, channel, applicant_id, event_name):
 async def przegraj_rekrutacje(guild, channel, applicant_id, event_name):
     applicant = guild.get_member(applicant_id)
     if applicant:
-        try: await applicant.send(f"❌ Hej niestety twoje podanie na event **{event_name.upper()}** zostało odrzucone.")
+        try: await applicant.send(f"❌ Hej! Niestety Twoje podanie na event **{event_name.upper()}** zostało odrzucone.")
         except: pass
-    await channel.send("🔴 Odrzucono. Kanał zostanie usunięty za 5 sekund.")
+    await channel.send("🔴 Odrzucono podanie. Kanał zostanie usunięty za 5 sekund.")
     await asyncio.sleep(5)
     try: await channel.delete()
     except: pass
@@ -125,7 +128,7 @@ class RecruitmentModal(ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         applicants = load_applicants()
         if [interaction.user.id, self.event_name.lower()] in applicants:
-            return await interaction.response.send_message(f"❌ Już wysłałeś podanie na event **{self.event_name}**!", ephemeral=True)
+            return await interaction.response.send_message(f"❌ Już wysłałeś podanie na ten event!", ephemeral=True)
         
         await interaction.response.defer(ephemeral=True, thinking=True)
         
@@ -137,15 +140,21 @@ class RecruitmentModal(ui.Modal):
                 break
         
         if not selected_category:
-            return await interaction.followup.send("❌ Wszystkie poczekalnie są pełne!", ephemeral=True)
+            return await interaction.followup.send("❌ Wszystkie poczekalnie rekrutacyjne są pełne!", ephemeral=True)
 
         save_applicant(interaction.user.id, self.event_name)
         
+        # Podstawowe uprawnienia kanału
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False),
             interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
             interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
         }
+        
+        # Bezpieczne dodanie roli sprawdzającej, by widziała ukryty kanał podania
+        mod_role = interaction.guild.get_role(MOD_ACCESS_ROLE_ID)
+        if mod_role:
+            overwrites[mod_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
         
         channel = await interaction.guild.create_text_channel(
             f"podanie-{interaction.user.name}", 
@@ -162,9 +171,9 @@ class RecruitmentModal(ui.Modal):
         ans.add_field(name="Pytanie 5", value=self.q5.value, inline=False)
         
         view = AdminDecisionView(applicant_id=interaction.user.id, event_name=self.event_name)
-        await channel.send(f"🛡️ **Panel Decyzji dla:** {interaction.user.mention}\nEvent: **{self.event_name}**", view=view)
+        await channel.send(f"🛡️ **Panel Zarządzania Podaniem**\nDostęp posiadają Moderatorzy Rekrutacji.\nEvent: **{self.event_name}**", view=view)
         await channel.send(embed=ans)
-        await interaction.followup.send(f"✅ Wysłano! Sprawdź: {channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"✅ Wysłano! Twoje podanie: {channel.mention}", ephemeral=True)
 
 # --- PRZYCISK STARTOWY ---
 class StartRecruitmentView(ui.View):
@@ -190,10 +199,10 @@ class Rekrutacja(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author.bot: return
-        if not message.guild: return
+        if message.author.bot or not message.guild: return
         
         if message.channel.category and message.channel.category.id in CATEGORY_IDS and message.channel.name.startswith("podanie-"):
+            # Tylko osoby z rolą sprawdzającego lub admini mogą użyć tekstowego TAK/NIE
             if not has_mod_perms(message.author): return
             
             text = message.content.strip().upper()
@@ -213,7 +222,7 @@ class Rekrutacja(commands.Cog):
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
         save_config(nazwa, ranga_id)
         clear_applicants_for_event(nazwa)
-        embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej!", color=discord.Color.gold())
+        embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", description="Kliknij przycisk poniżej, aby wypełnić formularz!", color=discord.Color.gold())
         await ctx.send(embed=embed, view=StartRecruitmentView(event_name=nazwa))
         await ctx.message.delete()
 
