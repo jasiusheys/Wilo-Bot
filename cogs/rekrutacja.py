@@ -100,11 +100,11 @@ class RecruitmentModal(ui.Modal):
     def __init__(self, title_name):
         super().__init__(title=f"Rekrutacja: {title_name}"[:45])
 
-    q1 = ui.TextInput(label='1. Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', placeholder='Wiek, Tak, Tak', style=discord.TextStyle.short)
-    q2 = ui.TextInput(label='2. Nick z MC / Rozumiesz, że na nagrywce jest zakaz grania na cheatach oraz zabronionych modach/txt?', placeholder='Nick, tak', style=discord.TextStyle.short)
-    q3 = ui.TextInput(label='3. Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybys spotkał Wila na mapie ', placeholder='Opisz tutaj...', style=discord.TextStyle.paragraph)
-    q4 = ui.TextInput(label='4. Czy grałeś już na takich eventach? u kogo?', placeholder='Tak (u kogo) / Nie', style=discord.TextStyle.short)
-    q5 = ui.TextInput(label='5. Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', placeholder='Link do filmu', style=discord.TextStyle.paragraph)
+    q1 = ui.TextInput(label='1. ', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.short)
+    q2 = ui.TextInput(label='2. ', placeholder='Nick z MC / Rozumiesz, że na nagrywce jest zakaz grania na cheatach oraz zabronionych modach/txt?', style=discord.TextStyle.short)
+    q3 = ui.TextInput(label='3.  ', placeholder='Wyjaśnij czym jest RP? / Napisz co byś zrobił gdybys spotkał Wila na mapie', style=discord.TextStyle.paragraph)
+    q4 = ui.TextInput(label='4. ', placeholder='Czy grałeś już na takich eventach? u kogo?', style=discord.TextStyle.short)
+    q5 = ui.TextInput(label='5. ', placeholder='Wyślij link do filmu, który przedstawia twój Mikrofon+POV z gry', style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
         if interaction.user.id in load_applicants():
