@@ -262,7 +262,7 @@ class Rekrutacja(commands.Cog):
             f"👥 **Suma wszystkich podań:** `{total}`\n"
             f"✅ **Zaakceptowano:** `{acc}`\n"
             f"❌ **Odrzucono:** `{den}`\n"
-            f"📊 **Skuteczność naboru:** `{rate}%`"
+            f"📊 **% osób które się dostały:** `{rate}%`"
         )
         
         embed.add_field(name="📋 Statystyki końcowe", value=info, inline=False)
