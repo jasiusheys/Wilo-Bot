@@ -12,6 +12,7 @@ MOD_ACCESS_ROLE_ID = 1511727936515080252
 CONFIG_FILE = "config_rekrutacja.json"
 DATA_FILE = "podania.json"
 ARCHIVE_FILE = "archiwum_rekrutacji.json"
+BLACKLIST_FILE = "blacklist.json"
 
 CATEGORY_IDS = [
     1511466087278051410,
@@ -59,6 +60,17 @@ def save_to_archive(report):
     archive.append(report)
     with open(ARCHIVE_FILE, "w", encoding="utf-8") as f:
         json.dump(archive, f, ensure_ascii=False, indent=4)
+
+# --- SYSTEM CZARNEJ LISTY (Z POWODEM) ---
+def load_blacklist():
+    if not os.path.exists(BLACKLIST_FILE): return {}
+    with open(BLACKLIST_FILE, "r", encoding="utf-8") as f:
+        try: return json.load(f)
+        except: return {}
+
+def save_blacklist(blacklist):
+    with open(BLACKLIST_FILE, "w", encoding="utf-8") as f:
+        json.dump(blacklist, f, ensure_ascii=False, indent=4)
 
 def save_applicant(user_id, event_name):
     applicants = load_applicants()
@@ -144,7 +156,6 @@ class RecruitmentModal(ui.Modal):
         super().__init__(title="Formularz Rekrutacyjny")
         self.event_name = event_name
 
-    # --- TUTAJ PRZYWRÓCIŁEM TWOJE PLACEHOLDERY ---
     q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
     q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Czy akceptujesz brak cheatów oraz nielegalnych modów/txt?', style=discord.TextStyle.paragraph, required=True)
     q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='Wyjaśnij czym jes RP? / Co byś zrobił spotykając Wila?', style=discord.TextStyle.paragraph, required=True)
@@ -189,6 +200,13 @@ class StartRecruitmentView(ui.View):
 
     @ui.button(label="Złóż podanie", style=discord.ButtonStyle.primary, custom_id="persistent_start_rec:default")
     async def start_rec_callback(self, interaction: discord.Interaction, button: ui.Button):
+        # --- SPRAWDZANIE BANA Z POWODEM ---
+        blacklist = load_blacklist()
+        uid_str = str(interaction.user.id)
+        if uid_str in blacklist:
+            powod = blacklist[uid_str]
+            return await interaction.response.send_message(f"❌ Zostałeś zablokowany w systemie rekrutacji.\n**Powód:** {powod}", ephemeral=True)
+
         event_name = button.custom_id.split(":")[1]
         await interaction.response.send_modal(RecruitmentModal(event_name=event_name))
 
@@ -228,10 +246,8 @@ class Rekrutacja(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def koniec_eventu(self, ctx, *, nazwa: str):
-        # Usuwanie komendy administratora z czatu
         try: await ctx.message.delete()
         except: pass
-
         applicants = load_applicants()
         event_data = [x for x in applicants if x['event'] == nazwa.lower()]
         if not event_data: return await ctx.send(f"❌ Brak podań dla: **{nazwa.upper()}**", delete_after=10)
@@ -252,22 +268,40 @@ class Rekrutacja(commands.Cog):
         save_to_archive(report)
         clear_applicants_for_event(nazwa)
         
-        # Nowy układ podsumowania w jednym pionowym bloku
         embed = discord.Embed(
             title=f"🏁 KONIEC REKRUTACJI: {nazwa.upper()}", 
             color=discord.Color.red() if rate < 50 else discord.Color.green()
         )
-        
         info = (
             f"👥 **Suma wszystkich podań:** `{total}`\n"
             f"✅ **Zaakceptowano:** `{acc}`\n"
             f"❌ **Odrzucono:** `{den}`\n"
             f"📊 **% osób które się dostały:** `{rate}%`"
         )
-        
         embed.add_field(name="📋 Statystyki końcowe", value=info, inline=False)
         embed.set_footer(text="Statystyki zapisano w archiwum.")
-        
         await ctx.send(embed=embed)
+
+    # --- KOMENDY CZARNEJ LISTY Z POWODEM ---
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def ban_rekrutacja(self, ctx, member: discord.Member, *, powod: str = "Brak podanego powodu"):
+        blacklist = load_blacklist()
+        uid_str = str(member.id)
+        blacklist[uid_str] = powod
+        save_blacklist(blacklist)
+        await ctx.send(f"✅ Użytkownik {member.mention} został zablokowany.\n**Powód:** {powod}")
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def unban_rekrutacja(self, ctx, member: discord.Member):
+        blacklist = load_blacklist()
+        uid_str = str(member.id)
+        if uid_str in blacklist:
+            del blacklist[uid_str]
+            save_blacklist(blacklist)
+            await ctx.send(f"✅ Użytkownik {member.mention} został odblokowany.")
+        else:
+            await ctx.send(f"ℹ️ {member.mention} nie jest zablokowany.")
 
 async def setup(bot): await bot.add_cog(Rekrutacja(bot))
