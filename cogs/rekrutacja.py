@@ -243,15 +243,20 @@ class Rekrutacja(commands.Cog):
             "odrzuceni": den,
             "skutecznosc": f"{rate}%"
         }
-        save_to_archive(report) # Zapis do pliku na stałe
-        clear_applicants_for_event(nazwa) # Czyszczenie aktywnej listy
+        save_to_archive(report)
+        clear_applicants_for_event(nazwa)
         
-        embed = discord.Embed(title=f"🏁 KONIEC: {nazwa.upper()}", color=discord.Color.red())
-        embed.add_field(name="Suma", value=f"`{total}`", inline=True)
-        embed.add_field(name="✅", value=f"`{acc}`", inline=True)
-        embed.add_field(name="❌", value=f"`{den}`", inline=True)
-        embed.add_field(name="Skuteczność", value=f"`{rate}%`", inline=False)
-        embed.set_footer(text="Statystyki zapisano w archiwum.")
+        # --- NOWY WYGLĄD STATYSTYK ---
+        embed = discord.Embed(
+            title=f"🏁 PODSUMOWANIE REKRUTACJI: {nazwa.upper()}", 
+            description="Wszystkie podania zostały zarchiwizowane w systemie.",
+            color=discord.Color.green() if rate >= 50 else discord.Color.red()
+        )
+        embed.add_field(name="📊 Ogólne", value=f"Suma podań: **{total}**\nSkuteczność: **{rate}%**", inline=False)
+        embed.add_field(name="✅ Zaakceptowani", value=f"**{acc}**", inline=True)
+        embed.add_field(name="❌ Odrzuceni", value=f"**{den}**", inline=True)
+        embed.set_footer(text=f"Data zakończenia: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+        
         await ctx.send(embed=embed)
 
 async def setup(bot): await bot.add_cog(Rekrutacja(bot))
