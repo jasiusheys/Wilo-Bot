@@ -11,7 +11,7 @@ ADMIN_ROLE_ID = 1511396320173359144
 MOD_ACCESS_ROLE_ID = 1511727936515080252
 CONFIG_FILE = "config_rekrutacja.json"
 DATA_FILE = "podania.json"
-ARCHIVE_FILE = "archiwum_rekrutacji.json" # Plik z historią
+ARCHIVE_FILE = "archiwum_rekrutacji.json"
 
 CATEGORY_IDS = [
     1511466087278051410,
@@ -144,11 +144,12 @@ class RecruitmentModal(ui.Modal):
         super().__init__(title="Formularz Rekrutacyjny")
         self.event_name = event_name
 
+    # --- TUTAJ PRZYWRÓCIŁEM TWOJE PLACEHOLDERY ---
     q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
-    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Czy akceptujesz brak cheatów?', style=discord.TextStyle.paragraph, required=True)
-    q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='RP? / Co byś zrobił spotykając Wila?', style=discord.TextStyle.paragraph, required=True)
+    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Czy akceptujesz brak cheatów oraz nielegalnych modów/txt?', style=discord.TextStyle.paragraph, required=True)
+    q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='Wyjaśnij czym jes RP? / Co byś zrobił spotykając Wila?', style=discord.TextStyle.paragraph, required=True)
     q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach? u kogo?', style=discord.TextStyle.paragraph, required=True)
-    q5 = ui.TextInput(label='5. Link do filmu', placeholder='Link do filmu (Mikrofon + POV)', style=discord.TextStyle.paragraph, required=True)
+    q5 = ui.TextInput(label='5. Link do filmu', placeholder='Link do filmu na którym słychać twój mikrofon i widać pov', style=discord.TextStyle.paragraph, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         applicants = load_applicants()
@@ -217,6 +218,8 @@ class Rekrutacja(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
+        try: await ctx.message.delete()
+        except: pass
         save_config(nazwa, ranga_id)
         clear_applicants_for_event(nazwa)
         embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", color=discord.Color.gold())
@@ -225,16 +228,19 @@ class Rekrutacja(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def koniec_eventu(self, ctx, *, nazwa: str):
+        # Usuwanie komendy administratora z czatu
+        try: await ctx.message.delete()
+        except: pass
+
         applicants = load_applicants()
         event_data = [x for x in applicants if x['event'] == nazwa.lower()]
-        if not event_data: return await ctx.send(f"❌ Brak podań dla: **{nazwa.upper()}**")
+        if not event_data: return await ctx.send(f"❌ Brak podań dla: **{nazwa.upper()}**", delete_after=10)
         
         total = len(event_data)
         acc = len([x for x in event_data if x['status'] == "TAK"])
         den = len([x for x in event_data if x['status'] == "NIE"])
         rate = round((acc / total) * 100) if total > 0 else 0
         
-        # Tworzenie raportu do Archiwum
         report = {
             "data": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "event": nazwa.upper(),
@@ -246,16 +252,21 @@ class Rekrutacja(commands.Cog):
         save_to_archive(report)
         clear_applicants_for_event(nazwa)
         
-        # --- NOWY WYGLĄD STATYSTYK ---
+        # Nowy układ podsumowania w jednym pionowym bloku
         embed = discord.Embed(
-            title=f"🏁 PODSUMOWANIE REKRUTACJI: {nazwa.upper()}", 
-            description="Wszystkie podania zostały zarchiwizowane w systemie.",
-            color=discord.Color.green() if rate >= 50 else discord.Color.red()
+            title=f"🏁 KONIEC REKRUTACJI: {nazwa.upper()}", 
+            color=discord.Color.red() if rate < 50 else discord.Color.green()
         )
-        embed.add_field(name="📊 Ogólne", value=f"Suma podań: **{total}**\nSkuteczność: **{rate}%**", inline=False)
-        embed.add_field(name="✅ Zaakceptowani", value=f"**{acc}**", inline=True)
-        embed.add_field(name="❌ Odrzuceni", value=f"**{den}**", inline=True)
-        embed.set_footer(text=f"Data zakończenia: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+        
+        info = (
+            f"👥 **Suma wszystkich podań:** `{total}`\n"
+            f"✅ **Zaakceptowano:** `{acc}`\n"
+            f"❌ **Odrzucono:** `{den}`\n"
+            f"📊 **Skuteczność naboru:** `{rate}%`"
+        )
+        
+        embed.add_field(name="📋 Statystyki końcowe", value=info, inline=False)
+        embed.set_footer(text="Statystyki zapisano w archiwum.")
         
         await ctx.send(embed=embed)
 
