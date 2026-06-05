@@ -3,7 +3,7 @@ from discord.ext import commands
 import re
 import datetime
 
-class AutoModeracja(commands.Cog):
+class Moderacja(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
@@ -19,8 +19,8 @@ class AutoModeracja(commands.Cog):
         self.GIF_ROLE_ID = 1470145948490666284
         self.ALLOWED_GIF_CHANNELS = [1470146632480854257, 1470146537240924171]
         
-        # --- PAMIĘĆ OSTRZEŻEŃ ---
-        self.ostrzezenia_uzytkownikow = {}  # Wspólny licznik dla linków i gifów
+        # --- PAMIĘĆ OSTRZEŻEŃ DLA LINKÓW ---
+        self.ostrzezenia_uzytkownikow = {}  # Licznik używany tylko dla YT i zaproszeń
         
         # --- REGEXY (FILTRY) ---
         self.INVITE_REGEX = re.compile(
@@ -64,14 +64,11 @@ class AutoModeracja(commands.Cog):
 
     def can_send_gifs(self, member: discord.Member, channel_id: int) -> bool:
         """Dedykowana funkcja sprawdzająca uprawnienia do wysyłania GIF-ów"""
-        # Jeśli ma immunitet ogólny (wyższa ranga) - może wszędzie
         if self.can_bypass_everything(member):
             return True
             
-        # Sprawdzenie roli z ograniczonym dostępem do gifów
         user_role_ids = [role.id for role in member.roles]
         if self.GIF_ROLE_ID in user_role_ids:
-            # Może wysłać, jeśli to jeden z dozwolonych kanałów
             if channel_id in self.ALLOWED_GIF_CHANNELS:
                 return True
                 
@@ -90,76 +87,72 @@ class AutoModeracja(commands.Cog):
         if message.author.bot or not message.guild:
             return
 
+        # Jeśli autor ma pełny immunitet, bot niczego nie tyka
+        if self.can_bypass_everything(message.author):
+            return
+
         kanal_kar = message.guild.get_channel(self.KARY_CHANNEL_ID)
 
         # --- 1. SPRAWDZANIE ZAKAZANYCH SŁÓW ---
-        # Słowa sprawdzamy tylko u osób bez ogólnego immunitetu
-        if not self.can_bypass_everything(message.author):
-            oczyszczony_tekst = self.przygotuj_tekst(message.content)
-            for slowo in self.ZAKAZANE_SLOWA:
-                if slowo in oczyszczony_tekst:
-                    try:
-                        await message.delete()
-                    except Exception as e:
-                        print(f"Błąd usuwania wulgaryzmu: {e}")
+        oczyszczony_tekst = self.przygotuj_tekst(message.content)
+        for slowo in self.ZAKAZANE_SLOWA:
+            if slowo in oczyszczony_tekst:
+                try:
+                    await message.delete()
+                except Exception as e:
+                    print(f"Błąd usuwania wulgaryzmu: {e}")
 
-                    try:
-                        czas_timeoutu = datetime.timedelta(minutes=5)
-                        await message.author.timeout(czas_timeoutu, reason="Używanie zakazanego słownictwa")
-                        if kanal_kar:
-                            await kanal_kar.send(
-                                f"🛑 {message.author.mention} otrzymał przerwę na **5 minut**. Powód: Używanie zakazanego słownictwa na kanale {message.channel.mention}."
-                            )
-                    except Exception as e:
-                        print(f"Błąd nadawania timeoutu za słowa: {e}")
-                    return
+                try:
+                    czas_timeoutu = datetime.timedelta(minutes=5)
+                    await message.author.timeout(czas_timeoutu, reason="Używanie zakazanego słownictwa")
+                    if kanal_kar:
+                        await kanal_kar.send(
+                            f"🛑 {message.author.mention} otrzymał przerwę na **5 minut**. Powód: Używanie zakazanego słownictwa na kanale {message.channel.mention}."
+                        )
+                except Exception as e:
+                    print(f"Błąd nadawania timeoutu za słowa: {e}")
+                return
 
-        # --- 2. SPRAWDZANIE LINKÓW I GIFÓW ---
+        # --- 2. SPRAWDZANIE GIFÓW (NATYCHMIASTOWE USUWANIE) ---
+        if self.GIF_REGEX.search(message.content):
+            if not self.can_send_gifs(message.author, message.channel.id):
+                try:
+                    await message.delete()
+                except Exception as e:
+                    print(f"Nie udało się usunąć GIF-a: {e}")
+                return  # Przerywamy działanie – GIF znika całkowicie bez kar i komunikatów
+
+        # --- 3. SPRAWDZANIE LINKÓW (DISCORD / YT - SYSTEM Z KARAMI) ---
         powod_blokady = None
-        czy_gif = False
 
         if self.INVITE_REGEX.search(message.content):
-            if not self.can_bypass_everything(message.author):
-                powod_blokady = "zakaz reklamowania innych projektów"
+            powod_blokady = "zakaz reklamowania innych projektów"
         elif self.YOUTUBE_REGEX.search(message.content):
-            if not self.can_bypass_everything(message.author):
-                powod_blokady = "zakaz wysyłania linków do YouTube"
-        elif self.GIF_REGEX.search(message.content):
-            # Osobna logika pozwalania na gify na wybranych kanałach
-            if not self.can_send_gifs(message.author, message.channel.id):
-                powod_blokady = "zakaz wysyłania GIF-ów na tym kanale"
-                czy_gif = True
+            powod_blokady = "zakaz wysyłania linków do YouTube"
 
-        # Jeśli złamano jakąś zasadę dotyczącą mediów/linków
         if powod_blokady:
             try:
                 await message.delete()
             except Exception as e:
-                print(f"Nie udało się usunąć wiadomości: {e}")
+                print(f"Nie udało się usunąć wiadomości z linkiem: {e}")
             
             try:
                 user_id = message.author.id
                 self.ostrzezenia_uzytkownikow[user_id] = self.ostrzezenia_uzytkownikow.get(user_id, 0) + 1
                 
-                # Drugie przewinienie -> Przerwa na 1 dzień
+                # Drugie przewinienie dla linków -> Przerwa na 1 dzień i log na kanale kar
                 if self.ostrzezenia_uzytkownikow[user_id] >= 2:
                     czas_timeoutu_media = datetime.timedelta(days=1)
-                    await message.author.timeout(czas_timeoutu_media, reason="Nagminne złamanie regulaminu mediów/linków")
+                    await message.author.timeout(czas_timeoutu_media, reason="Nagminne wysyłanie zakazanych linków")
                     
                     if kanal_kar:
-                        typ_blokady = "GIF-ów" if czy_gif else "linków"
                         await kanal_kar.send(
-                            f"🛑 {message.author.mention} otrzymał przerwę na **1 dzień** za ponowne złamanie zakazu wysyłania {typ_blokady} na kanale {message.channel.mention}!"
+                            f"🛑 {message.author.mention} otrzymał przerwę na **1 dzień** za ponowne złamanie zakazu wysyłania linków na kanale {message.channel.mention}!"
                         )
                     self.ostrzezenia_uzytkownikow[user_id] = 0
                     
-                # Pierwsze przewinienie -> Ostrzeżenie na czacie
-                else:
-                    await message.channel.send(
-                        f"⚠️ {message.author.mention}, na tym serwerze obowiązuje {powod_blokady}! Kolejna próba skończy się przerwą na 1 dzień."
-                    )
             except Exception as e:
-                print(f"Błąd logiki karania: {e}")
+                print(f"Błąd logiki karania za linki: {e}")
 
 async def setup(bot):
-    await bot.add_cog(AutoModeracja(bot))
+    await bot.add_cog(Moderacja(bot))
