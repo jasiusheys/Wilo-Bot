@@ -3,7 +3,7 @@ from discord.ext import commands
 import re
 import datetime
 
-class Moderacja(commands.Cog):
+class AutoModeracja(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
@@ -155,4 +155,4 @@ class Moderacja(commands.Cog):
                 print(f"Błąd logiki karania za linki: {e}")
 
 async def setup(bot):
-    await bot.add_cog(Moderacja(bot))
+    await bot.add_cog(AutoModeracja(bot))
