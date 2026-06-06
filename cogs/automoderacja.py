@@ -3,7 +3,7 @@ from discord.ext import commands
 import re
 import datetime
 
-class AutoModeracja(commands.Cog):
+class AutoModeracja(commands.Cog, name="AutoModeracjaWilo"):
     def __init__(self, bot):
         self.bot = bot
         
@@ -204,4 +204,82 @@ class AutoModeracja(commands.Cog):
                             )
                             if kanal_kar:
                                 await kanal_kar.send(
-                                    f"🛑 {message.author.mention} otrzymał przerwę na **{tekst_kary}**. Powód: Oznaczenie administracji (Wiadomość miała {ile_zakazanych_pingow} pingu/ów, Łącznie na koncie: {obecne_pingi}/3)
+                                    f"🛑 {message.author.mention} otrzymał przerwę na **{tekst_kary}**. Powód: Oznaczenie administracji (Wiadomość miała {ile_zakazanych_pingow} pingu/ów, Łącznie na koncie: {obecne_pingi}/3) na kanale {message.channel.mention}."
+                                )
+                        except Exception as e:
+                            print(f"Błąd nadawania kary za pingowanie: {e}")
+                            
+                        self.liczb_pingow[user_id] = 0
+                        return
+                        
+                    # Zwykłe upomnienia - tekst zostaje na czacie
+                    elif obecne_pingi == 1:
+                        await message.channel.send(
+                            f"⚠️ {message.author.mention}, nie pinguj administracji bez ważnego powodu! (1/3)"
+                        )
+                    elif obecne_pingi == 2:
+                        await message.channel.send(
+                            f"⚠️ {message.author.mention}, nie pinguj administracji! Kolejna próba skończy się przerwą. (2/3)"
+                        )
+
+        # --- 3. SPRAWDZANIE ZAKAZANYCH SŁÓW ---
+        oczyszczony_tekst = self.przygotuj_tekst(message.content)
+        for slowo in self.ZAKAZANE_SLOWA:
+            if slowo in oczyszczony_tekst:
+                try:
+                    await message.delete()
+                except Exception as e:
+                    print(f"Błąd usuwania wulgaryzmu: {e}")
+
+                try:
+                    czas_timeoutu = datetime.timedelta(minutes=5)
+                    await message.author.timeout(czas_timeoutu, reason="Używanie zakazanego słownictwa")
+                    if kanal_kar:
+                        await kanal_kar.send(
+                            f"🛑 {message.author.mention} otrzymał przerwę na **5 minut**. Powód: Używanie zakazanego słownictwa na kanale {message.channel.mention}."
+                        )
+                except Exception as e:
+                    print(f"Błąd nadawania timeoutu za słowa: {e}")
+                return
+
+        # --- 4. SPRAWDZANIE GIFÓW (NATYCHMIASTOWE USUWANIE) ---
+        if self.GIF_REGEX.search(message.content):
+            if not self.can_send_gifs(message.author, message.channel.id):
+                try:
+                    await message.delete()
+                except Exception as e:
+                    print(f"Nie udało się usunąć GIF-a: {e}")
+                return
+
+        # --- 5. SPRAWDZANIE LINKÓW (DISCORD / YT - SYSTEM Z KARAMI) ---
+        powod_blokady = None
+
+        if self.INVITE_REGEX.search(message.content):
+            powod_blokady = "zakaz reklamowania innych projektów"
+        elif self.YOUTUBE_REGEX.search(message.content):
+            powod_blokady = "zakaz wysyłania linków do YouTube"
+
+        if powod_blokady:
+            try:
+                await message.delete()
+            except Exception as e:
+                print(f"Nie udało się usunąć wiadomości z linkiem: {e}")
+            
+            try:
+                self.ostrzezenia_uzytkownikow[user_id] = self.ostrzezenia_uzytkownikow.get(user_id, 0) + 1
+                
+                if self.ostrzezenia_uzytkownikow[user_id] >= 2:
+                    czas_timeoutu_media = datetime.timedelta(days=1)
+                    await message.author.timeout(czas_timeoutu_media, reason="Nagminne wysyłanie zakazanych linków")
+                    
+                    if kanal_kar:
+                        await kanal_kar.send(
+                            f"🛑 {message.author.mention} otrzymał przerwę na **1 dzień** za ponowne złamanie zakazu wysyłania linków na kanale {message.channel.mention}!"
+                        )
+                    self.ostrzezenia_uzytkownikow[user_id] = 0
+                    
+            except Exception as e:
+                print(f"Błąd logiki karania za linki: {e}")
+
+async def setup(bot):
+    await bot.add_cog(AutoModeracja(bot))
