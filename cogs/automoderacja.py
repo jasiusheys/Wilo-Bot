@@ -92,7 +92,7 @@ class AutoModeracja(commands.Cog):
         now = datetime.datetime.now(datetime.timezone.utc)
 
         # --- 1. DETEKCJA ANTY-SPAMU (3 takie same wiadomości na min. 3 kanałach w 30s) ---
-        if message.content and len(message.content.strip()) > 3:
+        if message.content and len(message.content.strip()) > 0:
             czysty_tekst = message.content.strip().lower()
             dane_uzytkownika = self.historia_spamu.get(user_id)
             
@@ -105,7 +105,7 @@ class AutoModeracja(commands.Cog):
                     # Jeśli ta sama wiadomość pojawiła się na przynajmniej 3 kanałach
                     if len(dane_uzytkownika["channels"]) >= 3:
                         
-                        # USUWANIE WSZYSTKICH 3 USZEREGOWANYCH WIADOMOŚCI
+                        # USUWANIE WSZYSTKICH USZEREGOWANYCH WIADOMOŚCI
                         for msg in dane_uzytkownika["messages"]:
                             try:
                                 await msg.delete()
