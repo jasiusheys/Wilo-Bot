@@ -21,8 +21,8 @@ class AutoModeracja(commands.Cog):
         
         # --- PAMIĘĆ LINKÓW, SPAMU I PINGÓW ---
         self.ostrzezenia_uzytkownikow = {}  # Licznik dla YT / zaproszeń
-        self.historia_spamu = {}            # Pamięć spamu
-        self.kary_antyspam = {}             # Licznik multispamu
+        self.historia_spamu = {}            # Pamięć spamu: {user_id: {"text": str, "time": datetime, "messages": list, "channels": set}}
+        self.kary_antyspam = {}             # Licznik multispamu użytkownika: {user_id: int}
         self.liczb_pingow = {}              # Licznik nielegalnych pingów: {user_id: int}
         self.kary_pingowanie = {}           # Licznik kolejnych kar za pingi
         
@@ -88,6 +88,7 @@ class AutoModeracja(commands.Cog):
         if message.author.bot or not message.guild:
             return
 
+        # Jeśli autor ma pełny immunitet (Admin/Mod+), bot całkowicie ignoruje sprawdzanie
         if self.can_bypass_everything(message.author):
             return
 
@@ -148,29 +149,35 @@ class AutoModeracja(commands.Cog):
                     "messages": [message]
                 }
 
-        # --- 2. DETEKCJA ZAKAZANYCH PINGÓW (System Ostrzeżeń + Kary) ---
+        # --- 2. DETEKCJA ZAKAZANYCH PINGÓW ---
         if message.mentions:
             rola_graniczna = message.guild.get_role(self.ZAKAZ_PINGU_ROLE_ID)
             if rola_graniczna:
-                oznaczono_wazna_osobe = False
+                ile_zakazanych_pingow = 0
                 
+                # Zliczamy każdy nielegalny ping z tej wiadomości
                 for oznaczony in message.mentions:
                     if oznaczony.bot or oznaczony.id == user_id:
                         continue
                     
+                    ma_wysoka_range = False
                     for rrola in oznaczony.roles:
                         if rrola.position >= rola_graniczna.position:
-                            oznaczono_wazna_osobe = True
+                            ma_wysoka_range = True
                             break
-                    if oznaczono_wazna_osobe:
-                        break
+                            
+                    if ma_wysoka_range:
+                        wzmianka_id = f"<@{oznaczony.id}>"
+                        wzmianka_nick_id = f"<@!{oznaczony.id}>"
+                        ilosc_w_tekscie = message.content.count(wzmianka_id) + message.content.count(wzmianka_nick_id)
+                        ile_zakazanych_pingow += max(1, ilosc_w_tekscie)
                 
-                if oznaczono_wazna_osobe:
-                    self.liczb_pingow[user_id] = self.liczb_pingow.get(user_id, 0) + 1
+                if ile_zakazanych_pingow > 0:
+                    self.liczb_pingow[user_id] = self.liczb_pingow.get(user_id, 0) + ile_zakazanych_pingow
                     obecne_pingi = self.liczb_pingow[user_id]
                     
-                    # Trzeci nielegalny ping -> KARA + USUNIĘCIE
-                    if obecne_pingi >= 3:
+                    # Jeśli przekroczy ogólny próg (3) LUB wyśle bombę powyżej 5 pingów w 1 wiadomości
+                    if obecne_pingi >= 3 or ile_zakazanych_pingow > 5:
                         try:
                             await message.delete()
                         except Exception as e:
@@ -197,82 +204,4 @@ class AutoModeracja(commands.Cog):
                             )
                             if kanal_kar:
                                 await kanal_kar.send(
-                                    f"🛑 {message.author.mention} otrzymał przerwę na **{tekst_kary}**. Powód: 3. oznaczenie osoby z rangą wyższą lub równą szefostwu na kanale {message.channel.mention}."
-                                )
-                        except Exception as e:
-                            print(f"Błąd nadawania kary za pingowanie: {e}")
-                            
-                        self.liczb_pingow[user_id] = 0
-                        return
-                        
-                    # Pierwsze lub drugie ostrzeżenie wysyłane na czacie publicznym
-                    elif obecne_pingi == 1:
-                        await message.channel.send(
-                            f"⚠️ {message.author.mention}, nie pinguj administracji bez ważnego powodu! (1/3)"
-                        )
-                    elif obecne_pingi == 2:
-                        await message.channel.send(
-                            f"⚠️ {message.author.mention}, nie pinguj administracji! Kolejna próba skończy się przerwą. (2/3)"
-                        )
-
-        # --- 3. SPRAWDZANIE ZAKAZANYCH SŁÓW ---
-        oczyszczony_tekst = self.przygotuj_tekst(message.content)
-        for slowo in self.ZAKAZANE_SLOWA:
-            if slowo in oczyszczony_tekst:
-                try:
-                    await message.delete()
-                except Exception as e:
-                    print(f"Błąd usuwania wulgaryzmu: {e}")
-
-                try:
-                    czas_timeoutu = datetime.timedelta(minutes=5)
-                    await message.author.timeout(czas_timeoutu, reason="Używanie zakazanego słownictwa")
-                    if kanal_kar:
-                        await kanal_kar.send(
-                            f"🛑 {message.author.mention} otrzymał przerwę na **5 minut**. Powód: Używanie zakazanego słownictwa na kanale {message.channel.mention}."
-                        )
-                except Exception as e:
-                    print(f"Błąd nadawania timeoutu za słowa: {e}")
-                return
-
-        # --- 4. SPRAWDZANIE GIFÓW (NATYCHMIASTOWE USUWANIE) ---
-        if self.GIF_REGEX.search(message.content):
-            if not self.can_send_gifs(message.author, message.channel.id):
-                try:
-                    await message.delete()
-                except Exception as e:
-                    print(f"Nie udało się usunąć GIF-a: {e}")
-                return
-
-        # --- 5. SPRAWDZANIE LINKÓW (DISCORD / YT - SYSTEM Z KARAMI) ---
-        powod_blokady = None
-
-        if self.INVITE_REGEX.search(message.content):
-            powod_blokady = "zakaz reklamowania innych projektów"
-        elif self.YOUTUBE_REGEX.search(message.content):
-            powod_blokady = "zakaz wysyłania linków do YouTube"
-
-        if powod_blokady:
-            try:
-                await message.delete()
-            except Exception as e:
-                print(f"Nie udało się usunąć wiadomości z linkiem: {e}")
-            
-            try:
-                self.ostrzezenia_uzytkownikow[user_id] = self.ostrzezenia_uzytkownikow.get(user_id, 0) + 1
-                
-                if self.ostrzezenia_uzytkownikow[user_id] >= 2:
-                    czas_timeoutu_media = datetime.timedelta(days=1)
-                    await message.author.timeout(czas_timeoutu_media, reason="Nagminne wysyłanie zakazanych linków")
-                    
-                    if kanal_kar:
-                        await kanal_kar.send(
-                            f"🛑 {message.author.mention} otrzymał przerwę na **1 dzień** za ponowne złamanie zakazu wysyłania linków na kanale {message.channel.mention}!"
-                        )
-                    self.ostrzezenia_uzytkownikow[user_id] = 0
-                    
-            except Exception as e:
-                print(f"Błąd logiki karania za linki: {e}")
-
-async def setup(bot):
-    await bot.add_cog(AutoModeracja(bot))
+                                    f"🛑 {message.author.mention} otrzymał przerwę na **{tekst_kary}**. Powód: Oznaczenie administracji (Wiadomość miała {ile_zakazanych_pingow} pingu/ów, Łącznie na koncie: {obecne_pingi}/3)
