@@ -286,11 +286,23 @@ class Rekrutacja(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def ban_rekrutacja(self, ctx, member: discord.Member, *, powod: str = "Brak podanego powodu"):
+        # 1. Zapis do blacklisty
         blacklist = load_blacklist()
-        uid_str = str(member.id)
-        blacklist[uid_str] = powod
+        blacklist[str(member.id)] = powod
         save_blacklist(blacklist)
-        await ctx.send(f"✅ Użytkownik {member.mention} został zablokowany.\n**Powód:** {powod}")
+        
+        # 2. Usuń użytkownika z bazy podań (aby nie figurował jako "OCZEKUJE")
+        applicants = load_applicants()
+        new_applicants = [x for x in applicants if x['user_id'] != member.id]
+        save_all_applicants(new_applicants)
+        
+        # 3. Usuń wszystkie jego kanały podaniowe na serwerze
+        for channel in ctx.guild.channels:
+            if channel.topic and str(member.id) in channel.topic:
+                try: await channel.delete()
+                except: pass
+        
+        await ctx.send(f"✅ Użytkownik {member.mention} został zablokowany. Usunięto jego podania i kanały.\n**Powód:** {powod}")
 
     @commands.command()
     @commands.has_permissions(administrator=True)
