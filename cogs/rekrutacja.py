@@ -227,7 +227,7 @@ class Rekrutacja(commands.Cog):
                         await channel.delete()
                         ile_usunieto += 1
                     except: pass
-            await ctx.send(f"✅ Użytkownik {member.mention} został zablokowany. Usunięto {ile_usunieto} kanałów.\n**Powód:** {powod}")
+            await ctx.send(f"✅ Użytkownik {member.mention} został zablokowany. **Powód:** {powod}")
         except Exception as e:
             await ctx.send(f"⚠️ Wystąpił błąd: {e}")
 
