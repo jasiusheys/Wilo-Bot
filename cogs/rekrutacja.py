@@ -61,7 +61,6 @@ def save_to_archive(report):
     with open(ARCHIVE_FILE, "w", encoding="utf-8") as f:
         json.dump(archive, f, ensure_ascii=False, indent=4)
 
-# --- SYSTEM CZARNEJ LISTY ---
 def load_blacklist():
     if not os.path.exists(BLACKLIST_FILE): return {}
     with open(BLACKLIST_FILE, "r", encoding="utf-8") as f:
@@ -223,7 +222,7 @@ class Rekrutacja(commands.Cog):
             save_all_applicants(new_applicants)
             ile_usunieto = 0
             for channel in ctx.guild.channels:
-                if channel.topic and str(member.id) in channel.topic:
+                if isinstance(channel, discord.TextChannel) and channel.topic and str(member.id) in channel.topic:
                     try: 
                         await channel.delete()
                         ile_usunieto += 1
@@ -242,7 +241,33 @@ class Rekrutacja(commands.Cog):
             await ctx.send(f"✅ Użytkownik {member.mention} odblokowany.")
         else: await ctx.send(f"ℹ️ Użytkownik nie jest zablokowany.")
 
-    # ... tutaj reszta twoich komend (nowy_event, koniec_eventu, on_message) ...
-    # Zostawiłem miejsce, możesz wkleić swoje pozostałe metody tutaj.
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
+        try: await ctx.message.delete()
+        except: pass
+        save_config(nazwa, ranga_id)
+        clear_applicants_for_event(nazwa)
+        embed = discord.Embed(title=f"🎥 REKRUTACJA: {nazwa.upper()}", color=discord.Color.gold())
+        await ctx.send(embed=embed, view=StartRecruitmentView(event_name=nazwa))
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def koniec_eventu(self, ctx, *, nazwa: str):
+        try: await ctx.message.delete()
+        except: pass
+        applicants = load_applicants()
+        event_data = [x for x in applicants if x['event'] == nazwa.lower()]
+        if not event_data: return await ctx.send(f"❌ Brak podań dla: **{nazwa.upper()}**", delete_after=10)
+        total = len(event_data)
+        acc = len([x for x in event_data if x['status'] == "TAK"])
+        den = len([x for x in event_data if x['status'] == "NIE"])
+        rate = round((acc / total) * 100) if total > 0 else 0
+        report = {"data": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "event": nazwa.upper(), "suma": total, "zaakceptowani": acc, "odrzuceni": den, "skutecznosc": f"{rate}%"}
+        save_to_archive(report)
+        clear_applicants_for_event(nazwa)
+        embed = discord.Embed(title=f"🏁 KONIEC REKRUTACJI: {nazwa.upper()}", color=discord.Color.red() if rate < 50 else discord.Color.green())
+        embed.add_field(name="📋 Statystyki końcowe", value=f"👥 Suma: `{total}`, ✅: `{acc}`, ❌: `{den}`, 📊: `{rate}%`", inline=False)
+        await ctx.send(embed=embed)
 
 async def setup(bot): await bot.add_cog(Rekrutacja(bot))
