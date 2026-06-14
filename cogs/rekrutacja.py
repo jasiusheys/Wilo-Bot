@@ -154,7 +154,7 @@ class RecruitmentModal(ui.Modal):
         super().__init__(title="Formularz Rekrutacyjny")
         self.event_name = event_name
 
-    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
+    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event?', style=discord.TextStyle.paragraph, required=True)
     q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Czy akceptujesz brak cheatów?', style=discord.TextStyle.paragraph, required=True)
     q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='Wyjaśnij czym jes RP? / Co byś zrobił?', style=discord.TextStyle.paragraph, required=True)
     q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach?', style=discord.TextStyle.paragraph, required=True)
@@ -212,22 +212,28 @@ class Rekrutacja(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def ban_rekrutacja(self, ctx, member: discord.Member, *, powod: str = "Brak podanego powodu"):
+    async def ban_rekrutacja(self, ctx, members: commands.Greedy[discord.Member], *, powod: str = "Brak podanego powodu"):
+        if not members:
+            return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
+        
         try:
             blacklist = load_blacklist()
-            blacklist[str(member.id)] = powod
-            save_blacklist(blacklist)
             applicants = load_applicants()
-            new_applicants = [x for x in applicants if x['user_id'] != member.id]
-            save_all_applicants(new_applicants)
-            ile_usunieto = 0
-            for channel in ctx.guild.channels:
-                if isinstance(channel, discord.TextChannel) and channel.topic and str(member.id) in channel.topic:
-                    try: 
-                        await channel.delete()
-                        ile_usunieto += 1
-                    except: pass
-            await ctx.send(f"✅ Użytkownik {member.mention} został zablokowany. **Powód:** {powod}")
+            zbanowani = []
+            
+            for member in members:
+                blacklist[str(member.id)] = powod
+                applicants = [x for x in applicants if x['user_id'] != member.id]
+                
+                for channel in ctx.guild.channels:
+                    if isinstance(channel, discord.TextChannel) and channel.topic and str(member.id) in channel.topic:
+                        try: await channel.delete()
+                        except: pass
+                zbanowani.append(member.mention)
+            
+            save_blacklist(blacklist)
+            save_all_applicants(applicants)
+            await ctx.send(f"✅ Zablokowano: {', '.join(zbanowani)}.\n**Powód:** {powod}")
         except Exception as e:
             await ctx.send(f"⚠️ Wystąpił błąd: {e}")
 
