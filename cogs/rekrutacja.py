@@ -213,39 +213,53 @@ class Rekrutacja(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def ban_rekrutacja(self, ctx, members: commands.Greedy[discord.Member], *, powod: str = "Brak podanego powodu"):
-        if not members:
-            return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
-        
+        if not members: return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
         try:
             blacklist = load_blacklist()
             applicants = load_applicants()
             zbanowani = []
-            
             for member in members:
                 blacklist[str(member.id)] = powod
                 applicants = [x for x in applicants if x['user_id'] != member.id]
-                
                 for channel in ctx.guild.channels:
                     if isinstance(channel, discord.TextChannel) and channel.topic and str(member.id) in channel.topic:
                         try: await channel.delete()
                         except: pass
                 zbanowani.append(member.mention)
-            
             save_blacklist(blacklist)
             save_all_applicants(applicants)
-            await ctx.send(f"✅ Zablokowano: {', '.join(zbanowani)}.\n**Powód:** {powod}")
-        except Exception as e:
-            await ctx.send(f"⚠️ Wystąpił błąd: {e}")
+            embed = discord.Embed(title="✅ Zablokowano użytkowników", color=discord.Color.red())
+            embed.add_field(name="Osoby", value=", ".join(zbanowani), inline=False)
+            embed.add_field(name="Powód", value=powod, inline=False)
+            await ctx.send(embed=embed)
+        except Exception as e: await ctx.send(f"⚠️ Wystąpił błąd: {e}")
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def unban_rekrutacja(self, ctx, member: discord.Member):
+    async def unban_rekrutacja(self, ctx, members: commands.Greedy[discord.Member]):
+        if not members: return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
         blacklist = load_blacklist()
-        if str(member.id) in blacklist:
-            del blacklist[str(member.id)]
-            save_blacklist(blacklist)
-            await ctx.send(f"✅ Użytkownik {member.mention} odblokowany.")
-        else: await ctx.send(f"ℹ️ Użytkownik nie jest zablokowany.")
+        odbanowani = []
+        for member in members:
+            if str(member.id) in blacklist:
+                del blacklist[str(member.id)]
+                odbanowani.append(member.mention)
+        save_blacklist(blacklist)
+        if odbanowani: await ctx.send(f"✅ Odblokowano: {', '.join(odbanowani)}.")
+        else: await ctx.send("ℹ️ Żaden z oznaczonych użytkowników nie był na liście.")
+
+    @commands.command()
+    async def blacklista(self, ctx):
+        blacklist = load_blacklist()
+        if not blacklist: return await ctx.send("ℹ️ Blacklista jest pusta.")
+        embed = discord.Embed(title="🚫 Blacklista Rekrutacji", color=discord.Color.dark_red())
+        text = ""
+        for user_id, powod in blacklist.items():
+            user = self.bot.get_user(int(user_id))
+            name = user.name if user else f"ID: {user_id}"
+            text += f"• **{name}**: {powod}\n"
+        embed.description = text
+        await ctx.send(embed=embed)
 
     @commands.command()
     @commands.has_permissions(administrator=True)
