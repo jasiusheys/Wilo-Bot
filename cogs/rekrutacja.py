@@ -212,8 +212,15 @@ class Rekrutacja(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def ban_rekrutacja(self, ctx, members: commands.Greedy[discord.Member], *, powod: str = "Brak podanego powodu"):
+    async def ban_rekrutacja(self, ctx, *, args: str):
+        members = ctx.message.mentions
         if not members: return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
+        
+        powod = args
+        for member in members:
+            powod = powod.replace(f"<@{member.id}>", "").replace(f"<@!{member.id}>", "")
+        powod = powod.strip() or "Brak podanego powodu"
+
         try:
             blacklist = load_blacklist()
             applicants = load_applicants()
@@ -222,7 +229,7 @@ class Rekrutacja(commands.Cog):
                 blacklist[str(member.id)] = powod
                 applicants = [x for x in applicants if x['user_id'] != member.id]
                 for channel in ctx.guild.channels:
-                    if isinstance(channel, discord.TextChannel) and channel.topic and str(member.id) in channel.topic:
+                    if hasattr(channel, 'topic') and channel.topic and str(member.id) in channel.topic:
                         try: await channel.delete()
                         except: pass
                 zbanowani.append(member.mention)
@@ -260,6 +267,15 @@ class Rekrutacja(commands.Cog):
             text += f"• **{name}**: {powod}\n"
         embed.description = text
         await ctx.send(embed=embed)
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def rekrutacja_uball(self, ctx):
+        blacklist = load_blacklist()
+        if not blacklist:
+            return await ctx.send("ℹ️ Blacklista jest już pusta.")
+        save_blacklist({}) 
+        await ctx.send("✅ Blacklista została wyczyszczona.")
 
     @commands.command()
     @commands.has_permissions(administrator=True)
