@@ -133,7 +133,7 @@ async def wygraj_rekrutacje(guild, channel, applicant_id, event_name):
             try: await applicant.add_roles(role)
             except: pass
     if applicant:
-        try: await applicant.send(f"✅ Hej twoje podanie na event **{event_name.upper()}** zostało zaakceptowane!")
+        try: await applicant.send(f"✅ Hej twoje podanie na event **{event_name.upper()}** zostało zaakceptowane i otrzymałeś rangę na serwerze Wilo-Eventy sprawdź kanały na dole serwera! !")
         except: pass
     await channel.send("🟢 Zaakceptowano. Usuwanie kanału...")
     await asyncio.sleep(5)
@@ -143,7 +143,7 @@ async def wygraj_rekrutacje(guild, channel, applicant_id, event_name):
 async def przegraj_rekrutacje(guild, channel, applicant_id, event_name):
     applicant = guild.get_member(applicant_id)
     if applicant:
-        try: await applicant.send(f"❌ Hej niestety twoje podanie na event **{event_name.upper()}** zostało odrzucone!")
+        try: await applicant.send(f"❌ Hej niestety twoje podanie na event **{event_name.upper()}** zostało odrzucone powodzenia w przyszłości!")
         except: pass
     await channel.send("🔴 Odrzucono. Usuwanie kanału...")
     await asyncio.sleep(5)
