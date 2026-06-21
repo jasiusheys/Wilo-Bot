@@ -155,11 +155,11 @@ class RecruitmentModal(ui.Modal):
         super().__init__(title="Formularz Rekrutacyjny")
         self.event_name = event_name
 
-    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event?', style=discord.TextStyle.paragraph, required=True)
-    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Czy akceptujesz brak cheatów?', style=discord.TextStyle.paragraph, required=True)
-    q3 = ui.TextInput(label='3. Czym jest RP / Reakcja na Wila', placeholder='Wyjaśnij czym jes RP? / Co byś zrobił?', style=discord.TextStyle.paragraph, required=True)
-    q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach?', style=discord.TextStyle.paragraph, required=True)
-    q5 = ui.TextInput(label='5. Link do filmu', placeholder='Link do filmu z mikrofonem i pov', style=discord.TextStyle.paragraph, required=True)
+    q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
+    q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Czy akceptujesz brak cheatów zabronionych modów/txt?', style=discord.TextStyle.paragraph, required=True)
+    q3 = ui.TextInput(label='3. Wyjaśnij czym jest RP / Co zrobiłbyś gdybyś psotkał Wila ', placeholder='Wyjaśnij czym jes RP? / Co byś zrobił?', style=discord.TextStyle.paragraph, required=True)
+    q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach? Jak tak to u kogo?', style=discord.TextStyle.paragraph, required=True)
+    q5 = ui.TextInput(label='5. Link do filmu który przedstawia twój mikrofon', placeholder='Link do filmu z mikrofonem i povem z mc ', style=discord.TextStyle.paragraph, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         applicants = load_applicants()
