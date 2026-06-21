@@ -6,11 +6,8 @@ class AutoOdpowiedzi(commands.Cog):
         self.bot = bot
         # Klucze muszą być dokładnie takie, jakie mają zostać napisane (tylko małe litery)
         self.odpowiedzi = {
-            "dobranoc": "śpij dobrze, ale wróć jutro!",
-            "nuda": "idź się pobaw na kanałach forfun",
             "kiedy event": "wszystko masz na kanale rekrutacja nagrywki",
-            "co": "jajco 1-0",
-            "sigma": "ty skibidi"
+            
         }
 
     @commands.Cog.listener()
