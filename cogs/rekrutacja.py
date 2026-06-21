@@ -157,7 +157,7 @@ class RecruitmentModal(ui.Modal):
 
     q1 = ui.TextInput(label='1. Wiek/Czas?/Czy masz mc premium?', placeholder='Ile masz lat? / Czy zagrasz cały event? / Czy masz mc premium?', style=discord.TextStyle.paragraph, required=True)
     q2 = ui.TextInput(label='2. Twój nick z mc / Zasady', placeholder='Nick z MC / Czy akceptujesz brak cheatów zabronionych modów/txt?', style=discord.TextStyle.paragraph, required=True)
-    q3 = ui.TextInput(label='3. Wyjaśnij czym jest RP / Co zrobiłbyś gdybyś psotkał Wila ', placeholder='Wyjaśnij czym jes RP? / Co byś zrobił?', style=discord.TextStyle.paragraph, required=True)
+    q3 = ui.TextInput(label='3. Wyjaśnij czym jest RP / Co zrobisz jak spotkasz Wila ', placeholder='Wyjaśnij czym jes RP? / Co byś zrobił?', style=discord.TextStyle.paragraph, required=True)
     q4 = ui.TextInput(label='4. Doświadczenie na eventach', placeholder='Czy grałeś już na takich eventach? Jak tak to u kogo?', style=discord.TextStyle.paragraph, required=True)
     q5 = ui.TextInput(label='5. Link do filmu który przedstawia twój mikrofon', placeholder='Link do filmu z mikrofonem i povem z mc ', style=discord.TextStyle.paragraph, required=True)
 
