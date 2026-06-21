@@ -4,7 +4,9 @@ import json
 import os
 
 BLACKLIST_FILE = "blacklist.json"
+DATA_FILE = "podania.json"
 
+# --- FUNKCJE POMOCNICZE ---
 def load_blacklist():
     if not os.path.exists(BLACKLIST_FILE): return {}
     with open(BLACKLIST_FILE, "r", encoding="utf-8") as f:
@@ -15,53 +17,31 @@ def save_blacklist(blacklist):
     with open(BLACKLIST_FILE, "w", encoding="utf-8") as f:
         json.dump(blacklist, f, ensure_ascii=False, indent=4)
 
+def load_applicants():
+    if not os.path.exists(DATA_FILE): return []
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+            if data and isinstance(data[0], list):
+                converted = []
+                for x in data:
+                    if len(x) >= 2:
+                        converted.append({"user_id": x[0], "event": x[1].lower(), "status": "OCZEKUJE"})
+                return converted
+            return data
+        except: return []
+
+def save_all_applicants(applicants):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(applicants, f, ensure_ascii=False, indent=4)
+
+# --- KLASA COG ---
 class BlacklistaCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def ban_rekrutacja(self, ctx, *, args: str):
-        members = ctx.message.mentions
-        if not members: return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
-        
-        powod = args
-        for member in members:
-            powod = powod.replace(f"<@{member.id}>", "").replace(f"<@!{member.id}>", "")
-        powod = powod.strip() or "Brak podanego powodu"
-
-        try:
-            blacklist = load_blacklist()
-            # Tutaj musisz mieć też dostęp do load_applicants, 
-            # najlepiej importuj je z głównego pliku lub trzymaj funkcje w osobnym 'utils.py'
-            zbanowani = []
-            for member in members:
-                blacklist[str(member.id)] = powod
-                zbanowani.append(member.mention)
-            save_blacklist(blacklist)
-            
-            embed = discord.Embed(title="✅ Zablokowano użytkowników", color=discord.Color.red())
-            embed.add_field(name="Osoby", value=", ".join(zbanowani), inline=False)
-            embed.add_field(name="Powód", value=powod, inline=False)
-            await ctx.send(embed=embed)
-        except Exception as e: await ctx.send(f"⚠️ Wystąpił błąd: {e}")
-
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def unban_rekrutacja(self, ctx, members: commands.Greedy[discord.Member]):
-        if not members: return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
-        blacklist = load_blacklist()
-        odbanowani = []
-        for member in members:
-            if str(member.id) in blacklist:
-                del blacklist[str(member.id)]
-                odbanowani.append(member.mention)
-        save_blacklist(blacklist)
-        if odbanowani: await ctx.send(f"✅ Odblokowano: {', '.join(odbanowani)}.")
-        else: await ctx.send("ℹ️ Żaden z oznaczonych użytkowników nie był na liście.")
-
-    @commands.command()
-    async def blacklista(self, ctx):
+    @commands.command(name="blacklista")
+    async def komenda_blacklista(self, ctx):
         blacklist = load_blacklist()
         if not blacklist: return await ctx.send("ℹ️ Blacklista jest pusta.")
         embed = discord.Embed(title="🚫 Blacklista Rekrutacji", color=discord.Color.dark_red())
@@ -73,11 +53,41 @@ class BlacklistaCog(commands.Cog):
         embed.description = text
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @commands.command(name="blacklista_dodaj")
     @commands.has_permissions(administrator=True)
-    async def rekrutacja_uball(self, ctx):
+    async def komenda_dodaj(self, ctx, member: discord.Member, *, powod: str = "Brak podanego powodu"):
         blacklist = load_blacklist()
-        if not blacklist:
+        applicants = load_applicants()
+        
+        blacklist[str(member.id)] = powod
+        # Usuwanie z listy podań
+        applicants = [x for x in applicants if x['user_id'] != member.id]
+        # Usuwanie kanałów podania
+        for channel in ctx.guild.channels:
+            if hasattr(channel, 'topic') and channel.topic and str(member.id) in channel.topic:
+                try: await channel.delete()
+                except: pass
+        
+        save_blacklist(blacklist)
+        save_all_applicants(applicants)
+        
+        await ctx.send(f"✅ Zablokowano użytkownika {member.mention}.\n**Powód:** {powod}")
+
+    @commands.command(name="blacklista_usun")
+    @commands.has_permissions(administrator=True)
+    async def komenda_usun(self, ctx, member: discord.Member):
+        blacklist = load_blacklist()
+        if str(member.id) in blacklist:
+            del blacklist[str(member.id)]
+            save_blacklist(blacklist)
+            await ctx.send(f"✅ Odblokowano użytkownika {member.mention}.")
+        else:
+            await ctx.send("ℹ️ Ten użytkownik nie jest na czarnej liście.")
+
+    @commands.command(name="blacklista_usunall")
+    @commands.has_permissions(administrator=True)
+    async def komenda_usunall(self, ctx):
+        if not load_blacklist():
             return await ctx.send("ℹ️ Blacklista jest już pusta.")
         save_blacklist({}) 
         await ctx.send("✅ Blacklista została wyczyszczona.")
