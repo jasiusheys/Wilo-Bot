@@ -29,7 +29,7 @@ def load_config():
 
 def save_config(event_name, role_id):
     config = load_config()
-    config[event_name.lower()] = role_id
+    config[event_name.lower()] = {"role_id": role_id, "start_date": datetime.now().isoformat()}
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=4)
 
@@ -125,7 +125,8 @@ class AdminDecisionView(ui.View):
 async def wygraj_rekrutacje(guild, channel, applicant_id, event_name):
     applicant = guild.get_member(applicant_id)
     config = load_config()
-    role_id = config.get(event_name.lower())
+    role_data = config.get(event_name.lower())
+    role_id = role_data.get("role_id") if isinstance(role_data, dict) else role_data
     if role_id and applicant:
         role = guild.get_role(int(role_id))
         if role:
@@ -277,7 +278,7 @@ class Rekrutacja(commands.Cog):
         save_blacklist({}) 
         await ctx.send("✅ Blacklista została wyczyszczona.")
 
-    @commands.command()
+    @commands.command(aliases=['setupnagrywka'])
     @commands.has_permissions(administrator=True)
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
         try: await ctx.message.delete()
@@ -292,6 +293,15 @@ class Rekrutacja(commands.Cog):
     async def koniec_eventu(self, ctx, *, nazwa: str):
         try: await ctx.message.delete()
         except: pass
+        config = load_config()
+        event_cfg = config.get(nazwa.lower())
+        start_time = datetime.fromisoformat(event_cfg["start_date"]) if (isinstance(event_cfg, dict) and "start_date" in event_cfg) else datetime.now()
+        duration = datetime.now() - start_time
+        days = duration.days
+        hours, remainder = divmod(duration.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+        time_str = f"{days}d {hours}h {minutes}m"
+        
         applicants = load_applicants()
         event_data = [x for x in applicants if x['event'] == nazwa.lower()]
         if not event_data: return await ctx.send(f"❌ Brak podań dla: **{nazwa.upper()}**", delete_after=10)
@@ -303,7 +313,7 @@ class Rekrutacja(commands.Cog):
         save_to_archive(report)
         clear_applicants_for_event(nazwa)
         embed = discord.Embed(title=f"🏁 KONIEC REKRUTACJI: {nazwa.upper()}", color=discord.Color.red() if rate < 50 else discord.Color.green())
-        embed.add_field(name="📋 Statystyki końcowe", value=f"👥 Suma: `{total}`, ✅: `{acc}`, ❌: `{den}`, 📊: `{rate}%`", inline=False)
+        embed.add_field(name="📋 Statystyki końcowe", value=f"👥 Suma wszystkich podań: `{total}`\n✅ Zaakceptowano: `{acc}`\n❌ Odrzucono: `{den}`\n📊 % osób które się dostały: `{rate}%`\n⏱️ Czas trwania: `{time_str}`", inline=False)
         await ctx.send(embed=embed)
 
 async def setup(bot): await bot.add_cog(Rekrutacja(bot))
