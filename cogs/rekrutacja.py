@@ -278,7 +278,7 @@ class Rekrutacja(commands.Cog):
         save_blacklist({}) 
         await ctx.send("✅ Blacklista została wyczyszczona.")
 
-    @commands.command(aliases=['setupnagrywka'])
+    @commands.command()
     @commands.has_permissions(administrator=True)
     async def nowy_event(self, ctx, ranga_id: int, *, nazwa: str):
         try: await ctx.message.delete()
@@ -297,11 +297,10 @@ class Rekrutacja(commands.Cog):
         config = load_config()
         event_cfg = config.get(nazwa.lower())
         
-        # ZABEZPIECZENIE PRZED CRASHEM DLA STAREGO PLIKU:
         if isinstance(event_cfg, dict) and "start_date" in event_cfg:
             start_time = datetime.fromisoformat(event_cfg["start_date"])
         else:
-            start_time = datetime.now() # Jeśli nie ma daty, użyj obecnego czasu
+            start_time = datetime.now()
             
         duration = datetime.now() - start_time
         days = duration.days
