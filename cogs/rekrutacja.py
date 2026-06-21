@@ -293,9 +293,16 @@ class Rekrutacja(commands.Cog):
     async def koniec_eventu(self, ctx, *, nazwa: str):
         try: await ctx.message.delete()
         except: pass
+        
         config = load_config()
         event_cfg = config.get(nazwa.lower())
-        start_time = datetime.fromisoformat(event_cfg["start_date"]) if (isinstance(event_cfg, dict) and "start_date" in event_cfg) else datetime.now()
+        
+        # ZABEZPIECZENIE PRZED CRASHEM DLA STAREGO PLIKU:
+        if isinstance(event_cfg, dict) and "start_date" in event_cfg:
+            start_time = datetime.fromisoformat(event_cfg["start_date"])
+        else:
+            start_time = datetime.now() # Jeśli nie ma daty, użyj obecnego czasu
+            
         duration = datetime.now() - start_time
         days = duration.days
         hours, remainder = divmod(duration.seconds, 3600)
