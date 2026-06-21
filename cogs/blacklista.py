@@ -55,34 +55,49 @@ class BlacklistaCog(commands.Cog):
 
     @commands.command(name="blacklista_dodaj")
     @commands.has_permissions(administrator=True)
-    async def komenda_dodaj(self, ctx, member: discord.Member, *, powod: str = "Brak podanego powodu"):
+    async def komenda_dodaj(self, ctx, members: commands.Greedy[discord.Member], *, powod: str = "Brak podanego powodu"):
+        if not members:
+            return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
+        
         blacklist = load_blacklist()
         applicants = load_applicants()
+        zbanowani = []
         
-        blacklist[str(member.id)] = powod
-        # Usuwanie z listy podań
-        applicants = [x for x in applicants if x['user_id'] != member.id]
-        # Usuwanie kanałów podania
-        for channel in ctx.guild.channels:
-            if hasattr(channel, 'topic') and channel.topic and str(member.id) in channel.topic:
-                try: await channel.delete()
-                except: pass
+        for member in members:
+            blacklist[str(member.id)] = powod
+            # Usuwanie z listy podań
+            applicants = [x for x in applicants if x['user_id'] != member.id]
+            # Usuwanie kanałów podania
+            for channel in ctx.guild.channels:
+                if hasattr(channel, 'topic') and channel.topic and str(member.id) in channel.topic:
+                    try: await channel.delete()
+                    except: pass
+            zbanowani.append(member.mention)
         
         save_blacklist(blacklist)
         save_all_applicants(applicants)
         
-        await ctx.send(f"✅ Zablokowano użytkownika {member.mention}.\n**Powód:** {powod}")
+        await ctx.send(f"✅ Zablokowano {len(members)} użytkowników: {', '.join(zbanowani)}.\n**Powód:** {powod}")
 
     @commands.command(name="blacklista_usun")
     @commands.has_permissions(administrator=True)
-    async def komenda_usun(self, ctx, member: discord.Member):
+    async def komenda_usun(self, ctx, members: commands.Greedy[discord.Member]):
+        if not members:
+            return await ctx.send("❌ Musisz oznaczyć przynajmniej jedną osobę!")
+            
         blacklist = load_blacklist()
-        if str(member.id) in blacklist:
-            del blacklist[str(member.id)]
-            save_blacklist(blacklist)
-            await ctx.send(f"✅ Odblokowano użytkownika {member.mention}.")
+        odbanowani = []
+        
+        for member in members:
+            if str(member.id) in blacklist:
+                del blacklist[str(member.id)]
+                odbanowani.append(member.mention)
+        
+        save_blacklist(blacklist)
+        if odbanowani:
+            await ctx.send(f"✅ Odblokowano: {', '.join(odbanowani)}.")
         else:
-            await ctx.send("ℹ️ Ten użytkownik nie jest na czarnej liście.")
+            await ctx.send("ℹ️ Żaden z oznaczonych użytkowników nie był na liście.")
 
     @commands.command(name="blacklista_usunall")
     @commands.has_permissions(administrator=True)
