@@ -31,7 +31,7 @@ class Pomoc(commands.Cog):
         # 3. Blacklista
         embed.add_field(
             name="🚫 Blacklista ",
-            value="`!blacklista` - Wyświetla zbanowanych.\n"
+            value="`!blacklista` - Wyświetla wszystkie osoby z blacklisty.\n"
                   "`!blacklista_dodaj @user...` - Osoba dodana nie może zrobić podania na nagrywke.\n"
                   "`!blacklista_usun @user` - Usuwa z blki.\n"
                   "`!blacklista_usunall` - resetuje całą blke.",
@@ -49,7 +49,7 @@ class Pomoc(commands.Cog):
         )
 
       
-        embed.set_footer(text="Wilo-Bot | System Zarządzania 2026")
+        embed.set_footer(text="Wilo-Bot | komendy 2026")
         await ctx.send(embed=embed)
 
 async def setup(bot):
