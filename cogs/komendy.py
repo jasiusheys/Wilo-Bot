@@ -17,47 +17,38 @@ class Pomoc(commands.Cog):
         embed.add_field(
             name="📥 System Rekrutacji",
             value="`!nowy_event <ranga_id> <nazwa>` - Rozpoczyna rekrutację.\n"
-                  "`!koniec_eventu <nazwa>` - Zamyka nabór i generuje raport.",
+                  "`!koniec_eventu <nazwa>` - Zamyka rekrutacje i pokazuje całe staty.",
             inline=False
         )
 
         # 2. Nagrywki
         embed.add_field(
             name="🎥 System Nagrywek",
-            value="`!setupnagrywka <nazwa> @nowa_rola @stara_rola` - Tworzy kanały dla nowej nagrywki.",
+            value="`!setupnagrywka <nazwa> @nowa_rola @everyone` - Tworzy kanały dla nowej nagrywki.",
             inline=False
         )
 
         # 3. Blacklista
         embed.add_field(
-            name="🚫 Blacklista (Admin)",
+            name="🚫 Blacklista ",
             value="`!blacklista` - Wyświetla zbanowanych.\n"
-                  "`!blacklista_dodaj @user...` - Banuje i czyści kanały.\n"
-                  "`!blacklista_usun @user` - Usuwa z listy.\n"
-                  "`!blacklista_usunall` - Reset blacklisty.",
+                  "`!blacklista_dodaj @user...` - Osoba dodana nie może zrobić podania na nagrywke.\n"
+                  "`!blacklista_usun @user` - Usuwa z blki.\n"
+                  "`!blacklista_usunall` - resetuje całą blke.",
             inline=False
         )
 
         # 4. Moderacja
         embed.add_field(
-            name="🛡️ Moderacja i Narzędzia",
+            name="🛡️ Moderacja ",
             value="`!ping` - Sprawdza opóźnienie.\n"
                   "`!kick @user <powód>` - Wyrzuca użytkownika.\n"
                   "`!ban @user <powód>` - Banuje użytkownika.\n"
-                  "`!clear <ilość>` - Usuwa masowo wiadomości.",
+                  "`!clear <ilość>` - Usuwa  wiadomości.",
             inline=False
         )
 
-        # 5. Automatyka
-        embed.add_field(
-            name="⚙️ Funkcje Automatyczne",
-            value="• **Powitania:** Automatyczne wiadomości powitalne.\n"
-                  "• **Auto-Mod:** Wykrywanie spamu, wulgaryzmów i pingów.\n"
-                  "• **Propozycje:** Dodaje reakcje ✅/❌ do propozycji.\n"
-                  "• **Auto-Odpowiedzi:** Reaguje na 'kiedy event'.",
-            inline=False
-        )
-
+      
         embed.set_footer(text="Wilo-Bot | System Zarządzania 2026")
         await ctx.send(embed=embed)
 
