@@ -2,9 +2,11 @@ import discord
 from discord.ext import commands
 import json
 import os
+import asyncio
 
 BLACKLIST_FILE = "blacklist.json"
 DATA_FILE = "podania.json"
+KANAL_BLACKLISTY_ID = 1518407650633580636
 
 # --- FUNKCJE POMOCNICZE ---
 def load_blacklist():
@@ -40,6 +42,38 @@ class BlacklistaCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    # --- AUTOMATYCZNE DODAWANIE PRZEZ OZNACZENIE ---
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author.bot or message.channel.id != KANAL_BLACKLISTY_ID:
+            return
+
+        if message.mentions:
+            blacklist = load_blacklist()
+            applicants = load_applicants()
+            zbanowani_count = 0
+            
+            for member in message.mentions:
+                blacklist[str(member.id)] = "blacklista"
+                zbanowani_count += 1
+                
+                # Usuwanie z listy podań
+                applicants = [x for x in applicants if x['user_id'] != member.id]
+                
+                # Usuwanie kanałów podania
+                for channel in message.guild.channels:
+                    if hasattr(channel, 'topic') and channel.topic and str(member.id) in channel.topic:
+                        try: 
+                            await channel.delete()
+                            await asyncio.sleep(0.5) 
+                        except: pass
+            
+            save_blacklist(blacklist)
+            save_all_applicants(applicants)
+            await message.add_reaction("✅")
+            await message.channel.send(f"✅ Dodano {zbanowani_count} osób do blacklisty (Powód: blacklista).")
+
+    # --- KOMENDY ---
     @commands.command(name="blacklista")
     async def komenda_blacklista(self, ctx):
         blacklist = load_blacklist()
@@ -65,9 +99,7 @@ class BlacklistaCog(commands.Cog):
         
         for member in members:
             blacklist[str(member.id)] = powod
-            # Usuwanie z listy podań
             applicants = [x for x in applicants if x['user_id'] != member.id]
-            # Usuwanie kanałów podania
             for channel in ctx.guild.channels:
                 if hasattr(channel, 'topic') and channel.topic and str(member.id) in channel.topic:
                     try: await channel.delete()
@@ -76,7 +108,6 @@ class BlacklistaCog(commands.Cog):
         
         save_blacklist(blacklist)
         save_all_applicants(applicants)
-        
         await ctx.send(f"✅ Zablokowano {len(members)} użytkowników: {', '.join(zbanowani)}.\n**Powód:** {powod}")
 
     @commands.command(name="blacklista_usun")
