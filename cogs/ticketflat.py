@@ -17,7 +17,6 @@ class AdminTicketView(ui.View):
         super().__init__(timeout=None)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        # Sprawdza czy użytkownik ma rolę Admina LUB Ogólne+Flat
         allowed_roles = [ADMIN_ROLE_ID, MOD_ROLE_ID]
         if not any(role.id in allowed_roles for role in interaction.user.roles):
             await interaction.response.send_message("❌ Nie masz uprawnień do zarządzania tym ticketem!", ephemeral=True)
@@ -26,7 +25,6 @@ class AdminTicketView(ui.View):
 
     @ui.button(label="Nadaj FLATA", style=discord.ButtonStyle.green, custom_id="btn_flat")
     async def add_flat(self, interaction: discord.Interaction, button: ui.Button):
-        # Tylko admin może nadawać rangi (zgodnie z życzeniem)
         if ADMIN_ROLE_ID not in [role.id for role in interaction.user.roles]:
             await interaction.response.send_message("❌ Tylko administrator może nadawać rangi!", ephemeral=True)
             return
@@ -65,7 +63,7 @@ class AdminTicketView(ui.View):
         user_id = int(interaction.channel.topic.split(": ")[1])
         member = interaction.guild.get_member(user_id)
         if member:
-            try: await member.send("❌ Twoje zgłoszenie zostało zamknięte. Pamiętaj: aby odebrać rangę musisz posiadać wspierającego na kanale YT Wila lub dać boosta na Discordzie Wilo-Eventy.")
+            try: await member.send("❌ Twoje zgłoszenie zostało zamknięte. Pamiętaj, że aby odebrać rangę musisz posiadać wspierającego na YouTube u Wila albo boostera na Discordzie.")
             except: pass
         await interaction.response.send_message("🔒 Zamykam za 5s...")
         await asyncio.sleep(5)
@@ -139,7 +137,11 @@ class TicketFlat(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def panel_flat(self, ctx):
-        embed = discord.Embed(title="🌌 FLAT SMP - Odbiór wejściówek", description="Kliknij przycisk poniżej!", color=discord.Color.purple())
+        embed = discord.Embed(
+            title="🌌 FLAT SMP - Odbiór wejściówek", 
+            description="Kliknij przycisk poniżej! Pamiętaj, że aby odebrać rangę musisz posiadać wspierającego na YouTube u Wila albo boostera na Discordzie.", 
+            color=discord.Color.purple()
+        )
         await ctx.send(embed=embed, view=TicketView())
 
 async def setup(bot):
