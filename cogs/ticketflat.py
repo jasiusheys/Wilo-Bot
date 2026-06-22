@@ -11,6 +11,7 @@ FLAT_SMP_ROLE_ID = 1471242368312279317
 YT_ROLE_ID = 1168276108559523840
 CATEGORY_ID = 1471143729346904065
 GUILD_ID = 1083799097766596689
+LOG_CHANNEL_ID = 1518760958044930058 # Kanał logów
 
 class AdminTicketView(ui.View):
     def __init__(self):
@@ -60,8 +61,17 @@ class AdminTicketView(ui.View):
 
     @ui.button(label="Zamknij", style=discord.ButtonStyle.danger, custom_id="btn_close")
     async def close(self, interaction: discord.Interaction, button: ui.Button):
+        log_channel = interaction.guild.get_channel(LOG_CHANNEL_ID)
         user_id = int(interaction.channel.topic.split(": ")[1])
         member = interaction.guild.get_member(user_id)
+        
+        if log_channel:
+            embed = discord.Embed(title="📁 Logi Ticketa", color=discord.Color.blue())
+            embed.add_field(name="Użytkownik", value=f"{member.mention if member else 'Nieznany'}", inline=True)
+            embed.add_field(name="Zamknięte przez", value=f"{interaction.user.name}", inline=True)
+            embed.set_footer(text=f"ID Użytkownika: {user_id}")
+            await log_channel.send(embed=embed)
+
         if member:
             try: await member.send("❌ Twoje zgłoszenie zostało zamknięte. Pamiętaj, że aby odebrać rangę musisz posiadać wspierającego na YouTube u Wila albo boostera na Discordzie.")
             except: pass
