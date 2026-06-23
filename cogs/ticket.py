@@ -3,13 +3,13 @@ from discord import ui
 from discord.ext import commands
 
 # --- KONFIGURACJA ---
-# Dodaj swoje ID kategorii dla różnych ticketów
+# Twoje ID kategorii
 CATEGORY_MAP = {
-    "Twórca": 1471143729346904065,
-    "Ogólne": 1471143729346904065,
-    "Nagrywki": 1471143729346904065,
-    "Wspieranie": 1471143729346904065,
-    "Współpraca": 1471143729346904065
+    "Twórca": 1503873245064200234,
+    "Ogólne": 1503873389771882606,
+    "Nagrywki": 1503873359849590795,
+    "Wspieranie": 1503873164315332699,
+    "Współpraca": 1503873125434134648
 }
 
 class TicketCategorySelect(ui.Select):
@@ -26,13 +26,21 @@ class TicketCategorySelect(ui.Select):
     async def callback(self, interaction: discord.Interaction):
         category_name = self.values[0]
         category_id = CATEGORY_MAP.get(category_name)
-        
         guild = interaction.guild
         category = guild.get_channel(category_id)
+        
+        # Tworzenie nazwy kanału w formacie małych liter (wymagane przez Discord)
+        channel_name = f"ticket-{category_name.lower()}-{interaction.user.name.lower()}"
+
+        # SPRAWDZANIE CZY UŻYTKOWNIK JUŻ MA TEN TICKET
+        existing_channel = discord.utils.get(guild.text_channels, name=channel_name)
+        if existing_channel:
+            await interaction.response.send_message(f"❌ Masz już otwarty ticket w tej kategorii: {existing_channel.mention}", ephemeral=True)
+            return
 
         # Tworzenie kanału
         channel = await guild.create_text_channel(
-            name=f"ticket-{category_name}-{interaction.user.name}",
+            name=channel_name,
             category=category,
             overwrites={
                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -53,6 +61,7 @@ class TicketSystem(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        # Rejestrujemy widok, żeby przyciski działały po restarcie bota
         self.bot.add_view(TicketPanel())
 
     @commands.command()
