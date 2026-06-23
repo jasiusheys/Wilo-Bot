@@ -70,4 +70,21 @@ class TicketPanel(ui.View):
 
 class TicketSystem(commands.Cog):
     def __init__(self, bot):
-        self.
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.bot.add_view(TicketPanel())
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def panel_ticketow(self, ctx):
+        embed = discord.Embed(
+            title="📥 CENTRUM POMOCY",
+            description="Wybierz odpowiednią kategorię z menu poniżej, aby otworzyć nowego ticketa.\n\nPostaramy się pomóc tak szybko, jak to możliwe!\nPingowanie administracji oraz bezpodstawne tickety będą karane!",
+            color=discord.Color.blue()
+        )
+        await ctx.send(embed=embed, view=TicketPanel())
+
+async def setup(bot):
+    await bot.add_cog(TicketSystem(bot))
