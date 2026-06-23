@@ -26,7 +26,7 @@ class TicketCategorySelect(ui.Select):
         options = [
             discord.SelectOption(label="Twórca", description="Wymagania dla twórców", emoji="🎥"),
             discord.SelectOption(label="Ogólne", description="Inne pytania", emoji="⚙️"),
-            discord.SelectOption(label="Nagrywki", description="Rekrutacja do nagrywek", emoji="🎙️"),
+            discord.SelectOption(label="Nagrywki", description="Pytania dotyczące nagrywek", emoji="🎙️"),
             discord.SelectOption(label="Wspieranie", description="Problemy i odbiór rangi", emoji="💎"),
             discord.SelectOption(label="Współpraca", description="Propozycje współpracy", emoji="🤝"),
         ]
