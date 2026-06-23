@@ -14,11 +14,11 @@ CATEGORY_MAP = {
 
 # Wiadomości powitalne dla każdej kategorii
 WELCOME_MESSAGES = {
-    "Twórca": "Witaj {user}! Czekamy na Twój projekt. Prosimy o wysłanie wymagań.",
-    "Ogólne": "Witaj {user}! W czym możemy Ci dzisiaj pomóc?",
-    "Nagrywki": "Witaj {user}! Jeśli chcesz dołączyć do nagrywek, odpowiedz na nasze pytania.",
-    "Wspieranie": "Witaj {user}! Problemy z płatnościami? Opisz dokładnie co się stało.",
-    "Współpraca": "Witaj {user}! Dzięki za propozycję współpracy, opisz nam szczegóły."
+    "Twórca": "Siemka {user}! Jeżeli chcesz odebrać range twórca wyślij tutaj link do swojego kanału na youtubie i czekaj na weryfikacje!",
+    "Ogólne": "Siemka {user}! Napisz jaki masz problem i czekaj na odpowiedź!",
+    "Nagrywki": "Siemka {user}! Napisz jaki masz problem i czekaj na odpowiedź!",
+    "Wspieranie": "Siemka {user}! Jeżeli chcesz odebrac rangę wyślij zrzut ekranu w potwierdzeniem że wspierasz kanał Wila. ",
+    "Współpraca": "Siemka {user}! Masz jakąś propozycje wspołpracy? Napisz ją tutaj!."
 }
 
 class TicketCategorySelect(ui.Select):
