@@ -32,6 +32,8 @@ WELCOME_MESSAGES = {
     "Współpraca": "Siemka {user}! Masz jakąś propozycje wspołpracy? Napisz ją tutaj!."
 }
 
+LOG_CHANNEL_ID = 1503875231289311282
+
 # --- PRZYCISKI ---
 class CategoryTicketView(ui.View):
     def __init__(self, category_name, author: discord.Member):
@@ -74,16 +76,30 @@ class TicketCategorySelect(ui.Select):
         guild = interaction.guild
         role = guild.get_role(ROLE_MAP.get(cat_name))
         
+        # Tworzenie kanału
+        channel_name = f"ticket-{cat_name.lower()}-{interaction.user.name.lower()}"
+        existing_channel = discord.utils.get(guild.text_channels, name=channel_name)
+        if existing_channel:
+            return await interaction.response.send_message(f"❌ Masz już otwarty ticket w tej kategorii: {existing_channel.mention}", ephemeral=True)
+
         overwrites = {guild.default_role: discord.PermissionOverwrite(read_messages=False), 
                       interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
         if role: overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
-        channel = await guild.create_text_channel(name=f"ticket-{cat_name.lower()}-{interaction.user.name.lower()}", 
+        channel = await guild.create_text_channel(name=channel_name, 
                                                   category=guild.get_channel(CATEGORY_MAP.get(cat_name)), 
                                                   overwrites=overwrites)
         
+        # LOGOWANIE
+        log_channel = guild.get_channel(LOG_CHANNEL_ID)
+        if log_channel:
+            embed = discord.Embed(title="📁 Nowy Ticket", color=discord.Color.green())
+            embed.add_field(name="Użytkownik", value=interaction.user.mention, inline=True)
+            embed.add_field(name="Kategoria", value=cat_name, inline=True)
+            embed.add_field(name="Kanał", value=channel.mention, inline=False)
+            await log_channel.send(embed=embed)
+        
         view = CategoryTicketView(cat_name, interaction.user)
-        # Jeśli kategoria nie ma roli do nadania, usuwamy przycisk "Nadaj rolę"
         if cat_name not in ROLE_TO_GIVE:
             view.remove_item(view.give)
             
