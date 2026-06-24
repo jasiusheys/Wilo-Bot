@@ -16,7 +16,7 @@ ROLE_MAP = {
     "Ogólne": 1503899874758754334,
     "Nagrywki": 1503899930861895730,
     "Wspieranie": 1503899965234352309,
-    "Współpraca": 1503899819935137884
+    "Współpraca": 1503899819935137884 # Ta sama rola co dla Twórcy
 }
 
 ROLE_TO_GIVE = {
@@ -34,7 +34,7 @@ WELCOME_MESSAGES = {
 
 LOG_CHANNEL_ID = 1503875231289311282
 
-# --- FUNKCJA LOGUJĄCA (Naprawiona) ---
+# --- FUNKCJA LOGUJĄCA ---
 async def log_to_channel(guild, title, color, author, category, channel=None, closer=None, action="Utworzono"):
     log_channel = guild.get_channel(LOG_CHANNEL_ID)
     if log_channel:
@@ -56,29 +56,36 @@ class CategoryTicketView(ui.View):
         self.author = author
 
     async def check_perms(self, interaction: discord.Interaction):
-        role = interaction.guild.get_role(ROLE_MAP.get(self.category_name))
-        return interaction.user.guild_permissions.administrator or (role and role in interaction.user.roles)
+        # Administrator ma zawsze dostęp
+        if interaction.user.guild_permissions.administrator:
+            return True
+        
+        # Sprawdzamy rolę przypisaną do kategorii
+        role_id = ROLE_MAP.get(self.category_name)
+        role = interaction.guild.get_role(role_id)
+        
+        return role is not None and role in interaction.user.roles
 
     @ui.button(label="🔒 Zamknij", style=discord.ButtonStyle.danger, custom_id="close_ticket")
     async def close(self, interaction: discord.Interaction, button: ui.Button):
         if not await self.check_perms(interaction):
-            return await interaction.response.send_message("❌ Tylko moderatorzy mogą to zrobić!", ephemeral=True)
+            return await interaction.response.send_message("❌ Nie masz uprawnień!", ephemeral=True)
         
+        await interaction.response.send_message("Zamykanie kanału...", ephemeral=True)
         await log_to_channel(interaction.guild, "Ticket Zamknięty", discord.Color.red(), self.author, self.category_name, closer=interaction.user, action="Ręczne zamknięcie")
-        await interaction.response.send_message("Zamykanie kanału...")
         await interaction.channel.delete()
 
     @ui.button(label="✅ Nadaj rolę", style=discord.ButtonStyle.success, custom_id="give_role")
     async def give(self, interaction: discord.Interaction, button: ui.Button):
         if not await self.check_perms(interaction):
-            return await interaction.response.send_message("❌ Tylko moderatorzy mogą to zrobić!", ephemeral=True)
+            return await interaction.response.send_message("❌ Nie masz uprawnień!", ephemeral=True)
         
         role_id = ROLE_TO_GIVE.get(self.category_name)
         role = interaction.guild.get_role(role_id)
         if role:
             await self.author.add_roles(role)
             await log_to_channel(interaction.guild, "Ticket Rozwiązany", discord.Color.green(), self.author, self.category_name, closer=interaction.user, action=f"Nadano rolę: {role.name}")
-            await interaction.response.send_message(f"✅ Nadano rolę {role.mention} i zamykam.")
+            await interaction.response.send_message(f"✅ Nadano rolę {role.mention} i zamykam.", ephemeral=True)
             await interaction.channel.delete()
         else:
             await interaction.response.send_message("❌ Brak roli do nadania!", ephemeral=True)
@@ -109,7 +116,6 @@ class TicketCategorySelect(ui.Select):
 
         channel = await guild.create_text_channel(name=channel_name, category=guild.get_channel(CATEGORY_MAP.get(cat_name)), overwrites=overwrites)
         
-        # Logowanie z poprawnym przekazaniem kanału
         await log_to_channel(guild, "Nowy Ticket", discord.Color.blue(), interaction.user, cat_name, channel=channel, action="Utworzono kanał")
         
         view = CategoryTicketView(cat_name, interaction.user)
