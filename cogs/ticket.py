@@ -34,6 +34,20 @@ WELCOME_MESSAGES = {
 
 LOG_CHANNEL_ID = 1503875231289311282
 
+# --- FUNKCJA LOGUJĄCA (Naprawiona) ---
+async def log_to_channel(guild, title, color, author, category, channel=None, closer=None, action="Utworzono"):
+    log_channel = guild.get_channel(LOG_CHANNEL_ID)
+    if log_channel:
+        embed = discord.Embed(title=f"📁 {title}", color=color)
+        embed.add_field(name="Użytkownik", value=author.mention, inline=True)
+        embed.add_field(name="Kategoria", value=category, inline=True)
+        if channel:
+            embed.add_field(name="Kanał", value=channel.mention, inline=False)
+        if closer:
+            embed.add_field(name="Zamknięte przez", value=closer.mention, inline=True)
+        embed.add_field(name="Akcja", value=action, inline=False)
+        await log_channel.send(embed=embed)
+
 # --- PRZYCISKI ---
 class CategoryTicketView(ui.View):
     def __init__(self, category_name, author: discord.Member):
@@ -49,6 +63,8 @@ class CategoryTicketView(ui.View):
     async def close(self, interaction: discord.Interaction, button: ui.Button):
         if not await self.check_perms(interaction):
             return await interaction.response.send_message("❌ Tylko moderatorzy mogą to zrobić!", ephemeral=True)
+        
+        await log_to_channel(interaction.guild, "Ticket Zamknięty", discord.Color.red(), self.author, self.category_name, closer=interaction.user, action="Ręczne zamknięcie")
         await interaction.response.send_message("Zamykanie kanału...")
         await interaction.channel.delete()
 
@@ -61,10 +77,11 @@ class CategoryTicketView(ui.View):
         role = interaction.guild.get_role(role_id)
         if role:
             await self.author.add_roles(role)
-            await interaction.response.send_message(f"✅ Nadano rolę {role.mention} użytkownikowi {self.author.mention} i zamykam ticket.")
+            await log_to_channel(interaction.guild, "Ticket Rozwiązany", discord.Color.green(), self.author, self.category_name, closer=interaction.user, action=f"Nadano rolę: {role.name}")
+            await interaction.response.send_message(f"✅ Nadano rolę {role.mention} i zamykam.")
             await interaction.channel.delete()
         else:
-            await interaction.response.send_message("❌ Brak zdefiniowanej roli do nadania!", ephemeral=True)
+            await interaction.response.send_message("❌ Brak roli do nadania!", ephemeral=True)
 
 class TicketCategorySelect(ui.Select):
     def __init__(self):
@@ -83,29 +100,20 @@ class TicketCategorySelect(ui.Select):
         role = guild.get_role(ROLE_MAP.get(cat_name))
         
         channel_name = f"ticket-{cat_name.lower()}-{interaction.user.name.lower()}"
-        existing_channel = discord.utils.get(guild.text_channels, name=channel_name)
-        if existing_channel:
-            return await interaction.response.send_message(f"❌ Masz już otwarty ticket w tej kategorii: {existing_channel.mention}", ephemeral=True)
+        if discord.utils.get(guild.text_channels, name=channel_name):
+            return await interaction.response.send_message("❌ Masz już otwarty ticket!", ephemeral=True)
 
         overwrites = {guild.default_role: discord.PermissionOverwrite(read_messages=False), 
                       interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
         if role: overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
-        channel = await guild.create_text_channel(name=channel_name, 
-                                                  category=guild.get_channel(CATEGORY_MAP.get(cat_name)), 
-                                                  overwrites=overwrites)
+        channel = await guild.create_text_channel(name=channel_name, category=guild.get_channel(CATEGORY_MAP.get(cat_name)), overwrites=overwrites)
         
-        log_channel = guild.get_channel(LOG_CHANNEL_ID)
-        if log_channel:
-            embed = discord.Embed(title="📁 Nowy Ticket", color=discord.Color.green())
-            embed.add_field(name="Użytkownik", value=interaction.user.mention, inline=True)
-            embed.add_field(name="Kategoria", value=cat_name, inline=True)
-            embed.add_field(name="Kanał", value=channel.mention, inline=False)
-            await log_channel.send(embed=embed)
+        # Logowanie z poprawnym przekazaniem kanału
+        await log_to_channel(guild, "Nowy Ticket", discord.Color.blue(), interaction.user, cat_name, channel=channel, action="Utworzono kanał")
         
         view = CategoryTicketView(cat_name, interaction.user)
-        if cat_name not in ROLE_TO_GIVE:
-            view.remove_item(view.give)
+        if cat_name not in ROLE_TO_GIVE: view.remove_item(view.give)
             
         await channel.send(WELCOME_MESSAGES.get(cat_name).replace("{user}", interaction.user.mention), view=view)
         await interaction.response.send_message(f"✅ Utworzono: {channel.mention}", ephemeral=True)
@@ -119,7 +127,6 @@ class TicketSystem(commands.Cog):
     def __init__(self, bot): self.bot = bot
     @commands.Cog.listener()
     async def on_ready(self): self.bot.add_view(TicketPanel())
-    
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def panel_ticketow(self, ctx):
