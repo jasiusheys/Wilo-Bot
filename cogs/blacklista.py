@@ -45,7 +45,11 @@ class BlacklistaCog(commands.Cog):
     # --- AUTOMATYCZNE DODAWANIE PRZEZ OZNACZENIE ---
     @commands.Cog.listener()
     async def on_message(self, message):
+        # Sprawdzamy czy autor to nie bot, kanał się zgadza ORAZ autor jest administratorem
         if message.author.bot or message.channel.id != KANAL_BLACKLISTY_ID:
+            return
+        
+        if not message.author.guild_permissions.administrator:
             return
 
         if message.mentions:
@@ -57,10 +61,8 @@ class BlacklistaCog(commands.Cog):
                 blacklist[str(member.id)] = "blacklista"
                 zbanowani_count += 1
                 
-                # Usuwanie z listy podań
                 applicants = [x for x in applicants if x['user_id'] != member.id]
                 
-                # Usuwanie kanałów podania
                 for channel in message.guild.channels:
                     if hasattr(channel, 'topic') and channel.topic and str(member.id) in channel.topic:
                         try: 
@@ -75,6 +77,7 @@ class BlacklistaCog(commands.Cog):
 
     # --- KOMENDY ---
     @commands.command(name="blacklista")
+    @commands.has_permissions(administrator=True)
     async def komenda_blacklista(self, ctx):
         blacklist = load_blacklist()
         if not blacklist: return await ctx.send("ℹ️ Blacklista jest pusta.")
