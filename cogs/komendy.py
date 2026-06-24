@@ -6,6 +6,7 @@ class Pomoc(commands.Cog):
         self.bot = bot
 
     @commands.command(name="komendy")
+    @commands.has_permissions(administrator=True)
     async def komendy(self, ctx):
         embed = discord.Embed(
             title="KOMENDY do wilo bota",
@@ -30,7 +31,7 @@ class Pomoc(commands.Cog):
 
         # 3. Blacklista
         embed.add_field(
-            name="🚫 Blacklista ",
+            name="🚫 Blacklista",
             value="`!blacklista` - Wyświetla wszystkie osoby z blacklisty.\n"
                   "`!blacklista_dodaj @user...` - Osoba dodana nie może zrobić podania na nagrywke.\n"
                   "`!blacklista_usun @user` - Usuwa z blki.\n"
@@ -40,17 +41,24 @@ class Pomoc(commands.Cog):
 
         # 4. Moderacja
         embed.add_field(
-            name="🛡️ Moderacja ",
+            name="🛡️ Moderacja",
             value="`!ping` - Sprawdza opóźnienie.\n"
                   "`!kick @user <powód>` - Wyrzuca użytkownika.\n"
                   "`!ban @user <powód>` - Banuje użytkownika.\n"
-                  "`!clear <ilość>` - Usuwa  wiadomości.",
+                  "`!clear <ilość>` - Usuwa wiadomości.",
             inline=False
         )
-
       
         embed.set_footer(text="Wilo-Bot | komendy 2026")
         await ctx.send(embed=embed)
+
+    # Obsługa błędu, jeśli użytkownik nie ma uprawnień
+    @komendy.error
+    async def komendy_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("❌ Nie masz uprawnień, aby użyć tej komendy!", ephemeral=True)
+        else:
+            raise error
 
 async def setup(bot):
     await bot.add_cog(Pomoc(bot))
