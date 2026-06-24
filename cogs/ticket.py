@@ -68,7 +68,13 @@ class CategoryTicketView(ui.View):
 
 class TicketCategorySelect(ui.Select):
     def __init__(self):
-        options = [discord.SelectOption(label=cat, description="Otwórz zgłoszenie", emoji="📂") for cat in CATEGORY_MAP.keys()]
+        options = [
+            discord.SelectOption(label="Twórca", description="Wymagania dla twórców", emoji="🎥"),
+            discord.SelectOption(label="Ogólne", description="Inne pytania", emoji="⚙️"),
+            discord.SelectOption(label="Nagrywki", description="Pytania dotyczące nagrywek", emoji="🎙️"),
+            discord.SelectOption(label="Wspieranie", description="Problemy i odbiór rangi", emoji="💎"),
+            discord.SelectOption(label="Współpraca", description="Propozycje współpracy", emoji="🤝"),
+        ]
         super().__init__(placeholder="Select a category", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
@@ -76,7 +82,6 @@ class TicketCategorySelect(ui.Select):
         guild = interaction.guild
         role = guild.get_role(ROLE_MAP.get(cat_name))
         
-        # Tworzenie kanału
         channel_name = f"ticket-{cat_name.lower()}-{interaction.user.name.lower()}"
         existing_channel = discord.utils.get(guild.text_channels, name=channel_name)
         if existing_channel:
@@ -90,7 +95,6 @@ class TicketCategorySelect(ui.Select):
                                                   category=guild.get_channel(CATEGORY_MAP.get(cat_name)), 
                                                   overwrites=overwrites)
         
-        # LOGOWANIE
         log_channel = guild.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             embed = discord.Embed(title="📁 Nowy Ticket", color=discord.Color.green())
