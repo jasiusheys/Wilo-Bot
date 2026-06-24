@@ -137,7 +137,7 @@ class TicketSystem(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def panel_ticketow(self, ctx):
         embed = discord.Embed(
-            title="📥 CENTRUM POMOCY",
+            title="📥 CENTRUM POMOCY - Wilo Eventy",
             description="Wybierz odpowiednią kategorię z menu poniżej, aby otworzyć nowego ticketa.\n\nPostaramy się pomóc tak szybko, jak to możliwe!\nPingowanie administracji oraz bezpodstawne tickety będą karane!",
             color=discord.Color.blue()
         )
