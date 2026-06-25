@@ -12,6 +12,7 @@ class AutoModeracja(commands.Cog, name="AutoModeracjaWilo"):
         self.MIN_MOD_ROLE_ID = 1470849725065330780
         self.EXCEPTIONAL_ROLE_ID = 1490094494492655868
         self.ZAKAZ_PINGU_ROLE_ID = 1242180257864486962
+        self.ROLE_10LVL_ID = 1470145948490666284
         
         # --- PAMIĘĆ ---
         self.historia_spamu = {}
@@ -75,7 +76,7 @@ class AutoModeracja(commands.Cog, name="AutoModeracjaWilo"):
             else:
                 self.historia_spamu[user_id] = {"text": czysty_tekst, "time": now, "channels": {message.channel.id}, "messages": [message]}
 
-        # --- 2. ZAKAZANE PINGI (bez karania za odpowiedzi) ---
+        # --- 2. ZAKAZANE PINGI ---
         if not message.reference and message.mentions:
             rola_graniczna = message.guild.get_role(self.ZAKAZ_PINGU_ROLE_ID)
             if rola_graniczna:
@@ -96,8 +97,24 @@ class AutoModeracja(commands.Cog, name="AutoModeracjaWilo"):
                         self.liczb_pingow[user_id] = 0
                         return
 
-        # --- 3. WULGARYZMY I LINKI ---
-        if any(slowo in self.przygotuj_tekst(message.content) for slowo in self.ZAKAZANE_SLOWA) or self.INVITE_REGEX.search(message.content) or self.YOUTUBE_REGEX.search(message.content):
+        # --- 3. WULGARYZMY, LINKI ORAZ GIF-Y ---
+        has_gif_permission = any(role.id == self.ROLE_10LVL_ID for role in message.author.roles)
+        
+        wulgaryzm = any(slowo in self.przygotuj_tekst(message.content) for slowo in self.ZAKAZANE_SLOWA)
+        is_gif = any(embed.type == "gifv" for embed in message.embeds)
+        has_gif_link = message.content.lower().endswith(".gif")
+        is_link = self.INVITE_REGEX.search(message.content) or self.YOUTUBE_REGEX.search(message.content) or "http" in message.content.lower()
+        
+        if wulgaryzm:
+            try: await message.delete()
+            except: pass
+        elif is_link:
+            if (is_gif or has_gif_link) and has_gif_permission:
+                return
+            else:
+                try: await message.delete()
+                except: pass
+        elif is_gif and not has_gif_permission:
             try: await message.delete()
             except: pass
 
