@@ -109,7 +109,7 @@ class TicketCategorySelect(ui.Select):
             discord.SelectOption(label="Wspieranie", description="Problemy i odbiór rangi", emoji="💎"),
             discord.SelectOption(label="Współpraca", description="Propozycje współpracy", emoji="🤝"),
         ]
-        super().__init__(placeholder="Select a category", min_values=1, max_values=1, options=options)
+        super().__init__(placeholder="Wybierz kategorie ticketa!", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         cat_name = self.values[0]
