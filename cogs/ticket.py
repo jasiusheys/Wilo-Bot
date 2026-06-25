@@ -1,6 +1,7 @@
 import discord
 from discord import ui
 from discord.ext import commands
+import io
 
 # --- KONFIGURACJA ---
 CATEGORY_MAP = {
@@ -34,19 +35,31 @@ WELCOME_MESSAGES = {
 
 LOG_CHANNEL_ID = 1503875231289311282
 
-# --- FUNKCJA LOGUJĄCA ---
-async def log_to_channel(guild, title, color, author, category, channel=None, closer=None, action="Utworzono"):
+# --- FUNKCJA LOGUJĄCA I TRANSCRIPT ---
+async def generate_transcript(channel):
+    transcript = f"Historia kanału: {channel.name}\n"
+    transcript += "="*30 + "\n"
+    async for message in channel.history(limit=1000, oldest_first=True):
+        transcript += f"{message.created_at.strftime('%Y-%m-%d %H:%M:%S')} - {message.author}: {message.content}\n"
+    file = io.StringIO(transcript)
+    return discord.File(file, filename=f"transcript-{channel.name}.txt")
+
+async def log_to_channel(guild, title, color, author, category, channel=None, closer=None, action="Utworzono", transcript_file=None):
     log_channel = guild.get_channel(LOG_CHANNEL_ID)
     if log_channel:
         embed = discord.Embed(title=f"📁 {title}", color=color)
         embed.add_field(name="Użytkownik", value=author.mention, inline=True)
         embed.add_field(name="Kategoria", value=category, inline=True)
         if channel:
-            embed.add_field(name="Kanał", value=channel.mention, inline=False)
+            embed.add_field(name="Kanał", value=channel.name, inline=False)
         if closer:
             embed.add_field(name="Zamknięte przez", value=closer.mention, inline=True)
         embed.add_field(name="Akcja", value=action, inline=False)
-        await log_channel.send(embed=embed)
+        
+        if transcript_file:
+            await log_channel.send(embed=embed, file=transcript_file)
+        else:
+            await log_channel.send(embed=embed)
 
 # --- PRZYCISKI ---
 class CategoryTicketView(ui.View):
@@ -56,14 +69,10 @@ class CategoryTicketView(ui.View):
         self.author = author
 
     async def check_perms(self, interaction: discord.Interaction):
-        # Administrator ma zawsze dostęp
         if interaction.user.guild_permissions.administrator:
             return True
-        
-        # Sprawdzamy rolę przypisaną do kategorii
         role_id = ROLE_MAP.get(self.category_name)
         role = interaction.guild.get_role(role_id)
-        
         return role is not None and role in interaction.user.roles
 
     @ui.button(label="🔒 Zamknij", style=discord.ButtonStyle.danger, custom_id="close_ticket")
@@ -71,8 +80,9 @@ class CategoryTicketView(ui.View):
         if not await self.check_perms(interaction):
             return await interaction.response.send_message("❌ Nie masz uprawnień!", ephemeral=True)
         
-        await interaction.response.send_message("Zamykanie kanału...", ephemeral=True)
-        await log_to_channel(interaction.guild, "Ticket Zamknięty", discord.Color.red(), self.author, self.category_name, closer=interaction.user, action="Ręczne zamknięcie")
+        await interaction.response.send_message("Zamykanie i generowanie historii...", ephemeral=True)
+        transcript = await generate_transcript(interaction.channel)
+        await log_to_channel(interaction.guild, "Ticket Zamknięty", discord.Color.red(), self.author, self.category_name, closer=interaction.user, action="Ręczne zamknięcie", transcript_file=transcript)
         await interaction.channel.delete()
 
     @ui.button(label="✅ Nadaj rolę", style=discord.ButtonStyle.success, custom_id="give_role")
@@ -105,7 +115,6 @@ class TicketCategorySelect(ui.Select):
         cat_name = self.values[0]
         guild = interaction.guild
         role = guild.get_role(ROLE_MAP.get(cat_name))
-        
         channel_name = f"ticket-{cat_name.lower()}-{interaction.user.name.lower()}"
         if discord.utils.get(guild.text_channels, name=channel_name):
             return await interaction.response.send_message("❌ Masz już otwarty ticket!", ephemeral=True)
@@ -115,7 +124,6 @@ class TicketCategorySelect(ui.Select):
         if role: overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         channel = await guild.create_text_channel(name=channel_name, category=guild.get_channel(CATEGORY_MAP.get(cat_name)), overwrites=overwrites)
-        
         await log_to_channel(guild, "Nowy Ticket", discord.Color.blue(), interaction.user, cat_name, channel=channel, action="Utworzono kanał")
         
         view = CategoryTicketView(cat_name, interaction.user)
